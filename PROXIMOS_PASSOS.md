@@ -28,6 +28,9 @@ Versão atual entregue: **V151** (`exato/Exato_Central_Fiscal_V151/`). Regras do
 
 5. **Portal em modo oculto (pergunta do usuário):** tentar primeiro sem janela (`headless=True`, hoje `headless=False` em `fetch_via_portal`); se o portal pedir confirmação de segurança (captcha) ou bloquear o acesso oculto, reabrir automaticamente com janela visível só para essa etapa e voltar a ocultar. Opção "Mostrar o navegador" nas configurações/Modo técnico para o suporte. Não testado no portal real (captcha pode aparecer sempre); decidir pelo retorno do usuário.
 
+6. **Sessão lembrada no portal (usuário e senha):** guardar a sessão (cookies) do portal por empresa, protegida como a senha (DPAPI), para as próximas buscas entrarem sem captcha/janela até expirar; ao expirar, reabrir janela só para o captcha. Recusado de propósito: resolver captcha automaticamente (é contornar proteção do portal). Investigar depois uso de procuração (certificado do escritório consulta a empresa do cliente; ADN aceita `cnpjConsulta`).
+7. **DIRETRIZ DO USUÁRIO — automatizar ao máximo: o mínimo de cliques e de trabalho manual na Central Exato.** Aplicar em tudo da V152 em diante. Ideias: busca de NFS-e automática ao abrir/agendada (todas as empresas, certificado + portal), salvar XMLs + relatório mensal automaticamente após a busca (opção "fazer tudo"), lembrar última empresa/período/filtros/tipo de acesso, preencher CNPJ/usuário/senha sozinho, período padrão = mês anterior fechado, botão único "Buscar e salvar tudo", avisos só quando houver algo a decidir, retomar busca interrompida, tentar de novo sozinho em falha de rede.
+
 ## Ideias ainda não feitas
 - NFS-e no relatório e na auditoria (hoje separadas de propósito, por segurança).
 - Busca em lote por usuário e senha (clientes sem certificado).
