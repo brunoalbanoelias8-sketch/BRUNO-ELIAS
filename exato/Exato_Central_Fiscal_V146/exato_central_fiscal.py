@@ -91,6 +91,13 @@ AUDIT_FAMILY_LABELS = {'nfe':'NF-e','nfce':'NFC-e'}
 AUDIT_FAMILY_MODELS = {'nfe':'55','nfce':'65'}
 
 
+def _natural_number_key(value):
+    """Chave de ordenação natural para números de documentos (2 antes de 10; texto depois de números)."""
+    text = str(value or '').strip()
+    return tuple((0, int(part), '') if part.isdigit() else (1, 0, part.casefold())
+                 for part in re.split(r'(\d+)', text) if part != '')
+
+
 def _audit_ui_family(value):
     v=str(value or '').strip().casefold()
     if v in ('nf-e','nfe','55'):
@@ -9873,7 +9880,7 @@ class App(tk.Tk):
         # Header
         title_bar=tk.Frame(outer,bg=BG); title_bar.pack(fill='x',padx=22,pady=(10,6))
         title_left=tk.Frame(title_bar,bg=BG); title_left.pack(side='left',fill='x',expand=True)
-        tk.Label(title_left,text='Documentos Fiscais',bg=BG,fg=TEXT,font=('Segoe UI Semibold',20)).pack(anchor='w')
+        tk.Label(title_left,text='Buscar XML',bg=BG,fg=TEXT,font=('Segoe UI Semibold',20)).pack(anchor='w')
         tk.Label(title_left,text='Busque e acompanhe os documentos fiscais da empresa.',bg=BG,fg=MUTED,font=('Segoe UI',10)).pack(anchor='w',pady=(2,0))
         header_right=tk.Frame(title_bar,bg=BG); header_right.pack(side='right',anchor='ne')
         self.sync_date_label=tk.Label(header_right,text=datetime.now().strftime('%A, %d de %B de %Y').capitalize(),bg=BG,fg=MUTED,font=('Segoe UI Semibold',8),anchor='e')

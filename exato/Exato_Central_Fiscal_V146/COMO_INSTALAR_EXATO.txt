@@ -12,7 +12,7 @@ Versão: V145
 5) NÃO execute o programa de dentro do ZIP e não remova arquivos da pasta extraída.
 6) Abra a pasta da versão e execute INICIAR.bat.
 
-O programa verifica se o computador possui Python 3.10 ou superior.
+O programa verifica se o computador possui Python 3.12 ou superior.
 
 IMPORTANTE:
 - Não execute o arquivo .py diretamente.

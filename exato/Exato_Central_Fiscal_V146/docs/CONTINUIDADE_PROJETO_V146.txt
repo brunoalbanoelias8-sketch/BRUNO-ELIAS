@@ -20,4 +20,5 @@ PENDÊNCIAS (herdadas da V145 + visual)
 1. Revisar no Windows fontes, DPI e telas pequenas.
 2. Botões: a capitalização é ajustada em tempo de execução (_sentence_case_button_text); ao editar textos novos, já escreva em capitalização normal.
 3. Telas internas (Auditoria, Manutenção, Buscar XML) já usam o tema; falta apenas etiquetas coloridas de situação onde hoje há texto simples.
-4. Pendências da V145: acesso automático ao SAT, resultado "Concluído" da busca, Exato IA (_natural_number_key), Central /auth/import_users, Python 3.12 nos .bat, fluidez na troca de abas.
+4. Resolvidas na V146: Exato IA (_natural_number_key), Central /auth/import_users, Python 3.12 nos .bat.
+5. Ainda abertas (precisam de autorização ou de teste no Windows): resultado "Concluído" da Busca Automática (deferred_actor, núcleos protegidos), acesso automático ao SAT, auditoria de nota cancelada, fluidez na troca de abas.

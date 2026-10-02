@@ -13,20 +13,20 @@ echo.
 set "PYEXE="
 where py >nul 2>&1
 if not errorlevel 1 (
-    py -3 -c "import sys; assert sys.version_info >= (3,10)" >nul 2>&1
+    py -3 -c "import sys; assert sys.version_info >= (3,12)" >nul 2>&1
     if not errorlevel 1 set "PYEXE=py -3"
 )
 if not defined PYEXE (
     for /f "delims=" %%P in ('where python 2^>nul') do (
         echo %%P | findstr /i "\\WindowsApps\\" >nul
         if errorlevel 1 (
-            "%%P" -c "import sys; assert sys.version_info >= (3,10)" >nul 2>&1
+            "%%P" -c "import sys; assert sys.version_info >= (3,12)" >nul 2>&1
             if not errorlevel 1 (set "PYEXE=%%P" & goto :run)
         )
     )
 )
 if not defined PYEXE (
-    echo [ERRO] Python 3.10+ nao foi encontrado.
+    echo [ERRO] Python 3.12+ nao foi encontrado. Instale o Python 3.12 ou superior em python.org e marque "Add python.exe to PATH".
     pause
     exit /b 1
 )

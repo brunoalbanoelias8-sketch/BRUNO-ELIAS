@@ -5,4 +5,6 @@ V146 — CHECKLIST
 [x] Tela Certificado: busca, filtros, vencimento, seleção e Continuar
 [x] 13/13 núcleos fiscais SAME
 [x] 31/31 assets SAME
+[x] Botões em capitalização normal / cabeçalhos alinhados
+[x] Importação de usuários da Central sem elevação de perfil (teste reproduz falha na V145)
 [ ] Conferência visual no Windows (fontes/DPI) — pendente do usuário

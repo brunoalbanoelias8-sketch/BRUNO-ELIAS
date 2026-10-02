@@ -16,7 +16,11 @@ ALTERAÇÕES (SOMENTE INTERFACE)
 8. Botões escritos em MAIÚSCULAS passam a usar capitalização normal (ex.: "Salvar XMLs novos"), preservando XML, NF-e, NFC-e, CT-e, CNPJ, SAT, PDF, DANFE e Excel. A conversão é feita em tempo de execução (_ModernButton), sem alterar a lógica dos botões.
 9. Cabeçalhos de tabela alinhados com o conteúdo de cada coluna (_ModernTreeview).
 10. Documentos Fiscais: linha de ações com botões compactos (CompactPrimary/CompactSecondary), sem cortar textos em telas de 1366 px; texto de ajuda quebra em duas linhas.
-11. Correção: a barra de status passou a ser criada antes do corpo, evitando que ela fosse espremida em janelas baixas.
+11. Buscar XML: o título da página passou a ser "Buscar XML", igual ao menu.
+12. Exato IA: criada _natural_number_key (ordenação natural dos números das notas), que faltava e fazia a pergunta "maior diferença" falhar.
+13. Segurança da Central: /api/v140/auth/import_users não aceita mais perfil nem situação vindos do cliente. Contas novas entram como usuário comum e ativas; só o administrador principal (e-mail de bootstrap) mantém o perfil de administrador. Teste test_v146_central_import_role.py reproduz a falha na V145 e passa na V146.
+14. EXECUTAR.bat e COMO_INSTALAR_EXATO.txt agora exigem Python 3.12 ou superior (o código usa f-string que só compila a partir do 3.12).
+15. Correção: a barra de status passou a ser criada antes do corpo, evitando que ela fosse espremida em janelas baixas.
 
 PROTEÇÃO
 - 13/13 núcleos fiscais protegidos SAME (AST/SHA-256) em relação à V145.
@@ -28,6 +32,10 @@ TESTES
 - testes/test_v146_theme_ui.py: abre as 11 telas, confere o título do topo e testa busca/filtros/seleção de certificado (Xvfb, Python 3.12).
 - test_v144_companies_ui (com a versão ajustada), test_v140_central_sync e test_v141_backup_health continuam OK.
 - Testes antigos que checam a versão (V143, V144) e o cadastro com aprovação (V135/V137) já falhavam antes da V146, por mudarem a regra no projeto.
+
+NÃO ALTERADO DE PROPÓSITO
+- Resultado da Busca Automática ("Aguardando" mesmo quando tudo correu bem): a causa está na interpretação de deferred_actor, ligada aos núcleos fiscais protegidos (choose_nfe_actor, mark_nfe_sync_cycle, sync_documents_automatically). Precisa de autorização e de teste com a SEFAZ real.
+- Acesso automático ao SAT e auditoria de nota cancelada: dependem de teste no Windows com certificado / motor protegido.
 
 LIMITES
 - Testes feitos em Linux com fontes substitutas. A conferência final de aparência, em especial fontes e DPI, deve ser feita no Windows.
