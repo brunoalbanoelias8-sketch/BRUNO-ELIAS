@@ -53,8 +53,9 @@ try:
     # Layout responsivo: menu completo em 1366 px, menu de ícones em janelas estreitas e botões que quebram de linha.
     app.geometry('1366x650+0+0'); app._show_webservice_test(); app.update(); app.update()
     assert app.sidebar.winfo_width()==232 and app.sidebar_footer.winfo_ismapped()
-    app.geometry('1100x600+0+0'); app.update(); app.update()
-    assert app.sidebar.winfo_width()==m.RAIL_WIDTH and not app.sidebar_footer.winfo_ismapped()
+    app.geometry('1100x680+0+0'); app.update(); app.update()
+    assert app.sidebar.winfo_width()==m.RAIL_WIDTH and app.sidebar_footer.winfo_ismapped() and not app.ia_float_bubble.winfo_manager()
+    assert app.header_search.cget('text')=='⌕'
     assert app.nav_documents.cget('text')=='▤'
     app._show_webservice_test(); app.update(); app.update()
     # Todos os botões da linha de ações ficam dentro da área visível da página (nenhum fica escondido).
@@ -65,7 +66,8 @@ try:
     app._show_companies(); app.update(); app.update()
     assert app.page_host.winfo_y()==0
     app.geometry('1366x650+0+0'); app.update(); app.update()
-    assert app.sidebar.winfo_width()==232 and app.nav_documents.cget('text').endswith('Documentos Fiscais')
+    assert app.sidebar.winfo_width()==232 and app.nav_documents.cget('text').endswith('Documentos Fiscais') and app.ia_float_bubble.winfo_manager()
+    assert 'Ctrl+K' in app.header_search.cget('text')
     # Exatinho: o painel flutua e não muda a largura do menu.
     app._exatinho_open_panel(first=True); app.update()
     assert app.sidebar.winfo_width()==232 and app.ia_sidebar_interaction.winfo_x()>=232

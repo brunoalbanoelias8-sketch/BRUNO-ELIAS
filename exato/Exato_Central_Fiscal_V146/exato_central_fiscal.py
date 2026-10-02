@@ -199,7 +199,7 @@ CTE_ACCENT = RED
 CONFIG_LOCK = threading.RLock()
 PAGE_MIN_WIDTH = 1080   # largura mínima de uma página; abaixo disso a área central rola na horizontal
 RAIL_BELOW_WIDTH = 1260  # janelas mais estreitas usam o menu lateral compacto (só ícones)
-RAIL_WIDTH = 68
+RAIL_WIDTH = 76
 
 _REPORTLAB_READY = False
 
@@ -8003,6 +8003,11 @@ class App(tk.Tk):
         self.header_crumb_sep=tk.Label(left,text='/',bg=HEADER_BG,fg='#CBD5E1',font=('Segoe UI',9)); self.header_crumb_sep.pack(side='left',padx=6)
         self.header_crumb=tk.Label(left,text='Certificado',bg=HEADER_BG,fg=TEXT,font=('Segoe UI Semibold',10)); self.header_crumb.pack(side='left')
         tk.Label(left,text=APP_VERSION,bg='#EEF2F7',fg=MUTED,font=('Segoe UI Semibold',8),padx=7,pady=1).pack(side='left',padx=12)
+        self.header_search=tk.Label(left,text='⌕   Buscar...    Ctrl+K',bg='#F4F6FA',fg='#94A3B8',font=('Segoe UI',9),padx=12,pady=5,cursor='hand2',highlightbackground=BORDER,highlightthickness=1)
+        self.header_search.pack(side='left',padx=(14,0))
+        self.header_search.bind('<Button-1>',lambda e:self._shortcut_global_search(),add='+')
+        self.header_search.bind('<Enter>',lambda e:self.header_search.config(bg='#EEF2F7',fg=MUTED),add='+')
+        self.header_search.bind('<Leave>',lambda e:self.header_search.config(bg='#F4F6FA',fg='#94A3B8'),add='+')
         right=tk.Frame(header,bg=HEADER_BG); right.pack(side='right',fill='y',padx=(0,20))
         bottom=tk.Frame(right,bg=HEADER_BG); bottom.pack(side='right',padx=(10,0))
         self.header_logout=tk.Button(bottom,text='Sair',command=self._logout,relief='flat',bd=0,bg=HEADER_BG,fg=MUTED,activebackground='#EEF2F7',activeforeground=TEXT,font=('Segoe UI Semibold',9),cursor='hand2',padx=10,pady=4,highlightthickness=0); self.header_logout.pack(side='right')
@@ -9203,7 +9208,7 @@ class App(tk.Tk):
     def _exatinho_place_panel(self):
         """Posiciona o cartão do Exatinho ao lado do menu, acima da barra de status, sem cobrir a navegação."""
         panel = self.ia_sidebar_interaction
-        side = self._sidebar_base_width if self.sidebar_footer.winfo_ismapped() else RAIL_WIDTH
+        side = self._sidebar_base_width
         room = max(int(self.winfo_width() if self.winfo_width() > 200 else 1100) - side - 24, 240)
         panel.place(x=side + 12, rely=1.0, y=-44, anchor='sw', width=min(340, room))
         panel.lift()
@@ -9573,6 +9578,35 @@ class App(tk.Tk):
     def _on_workspace_leave(self, event=None):
         pass
 
+    def _rail_tip_schedule(self, btn):
+        self._rail_tip_hide()
+        if getattr(self, '_sidebar_mode', 'full') != 'rail':
+            return
+        self._rail_tip_job = self.after(350, lambda: self._rail_tip_show(btn))
+
+    def _rail_tip_show(self, btn):
+        self._rail_tip_job = None
+        try:
+            text = self._sidebar_nav_text.get(btn, '').split(None, 1)[1].strip()
+            tip = tk.Toplevel(self); tip.wm_overrideredirect(True); tip.configure(bg=DARK)
+            tk.Label(tip, text=text, bg=DARK, fg=WHITE, font=('Segoe UI Semibold', 9), padx=10, pady=5).pack()
+            tip.wm_geometry(f"+{btn.winfo_rootx() + btn.winfo_width() + 8}+{btn.winfo_rooty() + max((btn.winfo_height() - 28) // 2, 0)}")
+            self._rail_tip_win = tip
+        except Exception:
+            self._rail_tip_win = None
+
+    def _rail_tip_hide(self):
+        job = getattr(self, '_rail_tip_job', None)
+        if job:
+            try: self.after_cancel(job)
+            except Exception: pass
+            self._rail_tip_job = None
+        win = getattr(self, '_rail_tip_win', None)
+        if win is not None:
+            try: win.destroy()
+            except Exception: pass
+            self._rail_tip_win = None
+
     def _sidebar_nav_font(self, active=False):
         if getattr(self, '_sidebar_mode', 'full') == 'rail':
             return ("Segoe UI", 14)
@@ -9628,11 +9662,25 @@ class App(tk.Tk):
         except Exception:
             pass
         # rodapé com o Exatinho
+        # rodapé com o Exatinho: no menu de ícones aparece só o mascote (clique abre o painel)
         try:
-            if level == 'tight' or rail:
+            if level == 'tight':
                 self.sidebar_footer.pack_forget()
-            elif not self.sidebar_footer.winfo_ismapped():
-                self.sidebar_footer.pack(side='bottom', fill='x', padx=12, pady=12)
+            else:
+                self.sidebar_footer.pack_configure(padx=(4 if rail else 12))
+                if not self.sidebar_footer.winfo_ismapped():
+                    self.sidebar_footer.pack(side='bottom', fill='x', padx=(4 if rail else 12), pady=12)
+            bubble = self.ia_float_bubble
+            if rail and bubble.winfo_manager():
+                bubble.pack_forget()
+            elif not rail and not bubble.winfo_manager():
+                bubble.pack(side='left', fill='x', expand=True, anchor='center')
+            self.ia_float_img.pack_configure(padx=(0 if rail else 0, 0 if rail else 4))
+        except Exception:
+            pass
+        # busca rápida do topo
+        try:
+            self.header_search.config(text='⌕' if rail else '⌕   Buscar...    Ctrl+K')
         except Exception:
             pass
 
@@ -9648,6 +9696,7 @@ class App(tk.Tk):
                       font=("Segoe UI",10),padx=14,pady=4,cursor="hand2", highlightthickness=0)
         btn.pack(fill="x", padx=12, pady=1)
         self._sidebar_navs.append(btn); self._sidebar_nav_text[btn]=text
+        btn.bind('<Enter>',lambda e,b=btn:self._rail_tip_schedule(b),add='+'); btn.bind('<Leave>',lambda e:self._rail_tip_hide(),add='+'); btn.bind('<Button-1>',lambda e:self._rail_tip_hide(),add='+')
         btn.bind('<Enter>',lambda e,b=btn:(b.config(bg=SIDEBAR_HOVER) if b.cget('bg')!=RED else None),add='+')
         btn.bind('<Leave>',lambda e,b=btn:(b.config(bg=SIDEBAR_BG) if b.cget('bg')!=RED else None),add='+')
         return btn
@@ -9822,9 +9871,13 @@ class App(tk.Tk):
         if hasattr(self, "header_context"):
             if self.selected:
                 subject = self.selected.get("FriendlyName") or _sat_subject_cn(self.selected.get("Subject") or "") or self.selected.get("Subject") or "Certificado selecionado"
-                self.header_context.config(text=f"Cert.: {subject[:62]}")
+                left = self._cert_days_left(self.selected)
+                if left is not None and left <= 30:
+                    self.header_context.config(text=f"Cert.: {subject[:40]} • vence em {max(left, 0)} dia(s)", fg="#B45309" if left > 7 else RED)
+                else:
+                    self.header_context.config(text=f"Cert.: {subject[:62]}", fg=MUTED)
             else:
-                self.header_context.config(text="Certificado não selecionado")
+                self.header_context.config(text="Certificado não selecionado", fg=MUTED)
 
     def _set_active_nav(self, active):
         buttons={"cert":getattr(self,"nav_cert",None),"sync":getattr(self,"nav_sync",None),"dashboard":getattr(self,"nav_dashboard",None),"companies":getattr(self,"nav_companies",None),"documents":getattr(self,"nav_documents",None),"reports":getattr(self,"nav_reports",None),"pending":getattr(self,"nav_pending",None),"history":getattr(self,"nav_history",None),"audit":getattr(self,"nav_audit",None),"users":getattr(self,"nav_users",None),"maintenance":getattr(self,"nav_maintenance",None)}

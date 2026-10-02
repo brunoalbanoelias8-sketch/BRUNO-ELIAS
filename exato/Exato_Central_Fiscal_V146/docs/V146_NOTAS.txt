@@ -40,6 +40,10 @@ LAYOUT RESPONSIVO (NOTEBOOKS)
 19. Largura mínima de página (1080 px) com rolagem horizontal de segurança: se a janela for mais estreita, a página rola em vez de cortar.
 20. Linhas de botões que quebram de linha automaticamente (make_flow): Buscar XML (os botões "Buscar XML" e "Busca automática" podiam ficar escondidos), Documentos Fiscais, Auditoria e Manutenção.
 
+21. Menu de ícones com o mascote do Exatinho no rodapé (clique abre o painel) e dicas de ferramenta ao passar o mouse sobre cada ícone.
+22. Busca rápida no topo ("Buscar... Ctrl+K"), que abre a Busca global; vira só o ícone em janelas estreitas.
+23. Aviso de validade do certificado no topo: âmbar com 30 dias ou menos e vermelho com 7 dias ou menos.
+
 NÃO ALTERADO DE PROPÓSITO
 - Resultado da Busca Automática ("Aguardando" mesmo quando tudo correu bem): a causa está na interpretação de deferred_actor, ligada aos núcleos fiscais protegidos (choose_nfe_actor, mark_nfe_sync_cycle, sync_documents_automatically). Precisa de autorização e de teste com a SEFAZ real.
 - Acesso automático ao SAT e auditoria de nota cancelada: dependem de teste no Windows com certificado / motor protegido.
