@@ -10,4 +10,5 @@
 - NFS-e segue a lógica da NF-e (V151): XML + PDF por nota (`exato_nfse_pdf.py`) + consolidado por pasta, registro de exportação em `document_exports`, alerta de cancelada já exportada; planilhas por `exato_xlsx.py`. Em NFS-e usar Prestados/Tomados na tela e nas pastas (internamente Saída/Entrada). Ferramentas só para o suporte ficam no Modo técnico (Manutenção).
 - O usuário não quer linguagem de programação visível (nomes de erro, siglas técnicas): mensagens sempre em português claro (`friendly_message`, `log_exception`).
 - O usuário usa notebook (≈1366×768): toda tela nova deve funcionar em 1366×650 e em janelas estreitas (usar `make_flow` para linhas de botões; ver `docs/CONTINUIDADE_PROJETO_*`).
+- **Diretriz do usuário: automatizar ao máximo.** A Central Exato deve exigir o mínimo de cliques e de trabalho manual (lembrar escolhas, preencher sozinho, ações encadeadas, tentar de novo sozinho, avisar só quando houver decisão). Pense nisso em toda tela nova.
 - Responder em português.
