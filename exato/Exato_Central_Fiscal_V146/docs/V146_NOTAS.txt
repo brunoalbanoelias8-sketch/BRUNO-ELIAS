@@ -1,0 +1,31 @@
+V146 — NOVO TEMA VISUAL (TODAS AS ABAS)
+
+BASE
+- V146 parte diretamente da V145, a pedido do usuário, após aprovação da direção visual.
+
+ALTERAÇÕES (SOMENTE INTERFACE)
+1. Paleta central renovada (BG, SIDEBAR_BG, HEADER_BG, RED, RED_DARK, RED_SOFT, BORDER). Todas as abas herdam as novas cores.
+2. Topo claro de 56 px com trilha "Exato Central Fiscal / <tela>", versão, estado da Central, data/hora, usuário com avatar e Sair.
+   Os rótulos header_identity, header_context, header_central, header_sync, header_date e header_time foram mantidos.
+3. Barra lateral: largura 232, logo oficial sem a caixa cinza (transparência aplicada em tempo de execução; o arquivo em assets/ não foi alterado), efeito hover, item ativo em vermelho.
+4. Barra de status clara com borda superior.
+5. Estilos ttk: Treeview com linhas mais altas e cabeçalho claro, botões Primary/Secondary/Blue, campos, combobox e barra de rolagem fina.
+6. Tela Certificado: busca (nome ou CPF/CNPJ), filtros Todos / A3 token / Vencendo, contagem exibida, "Vence em N dia(s)" em âmbar para certificados com 60 dias ou menos, duplo clique para continuar e rodapé com o certificado selecionado.
+   A lógica (refresh_certificates, _on_select, confirm_selection, restauração por thumbprint) não mudou.
+7. Títulos de página padronizados em 20 pt.
+8. Correção: a barra de status passou a ser criada antes do corpo, evitando que ela fosse espremida em janelas baixas.
+
+PROTEÇÃO
+- 13/13 núcleos fiscais protegidos SAME (AST/SHA-256) em relação à V145.
+- 31/31 assets SAME.
+- Persistência, Central Compartilhada, backup e autostart não foram tocados.
+
+TESTES
+- py_compile.
+- testes/test_v146_theme_ui.py: abre as 11 telas, confere o título do topo e testa busca/filtros/seleção de certificado (Xvfb, Python 3.12).
+- test_v144_companies_ui (com a versão ajustada), test_v140_central_sync e test_v141_backup_health continuam OK.
+- Testes antigos que checam a versão (V143, V144) e o cadastro com aprovação (V135/V137) já falhavam antes da V146, por mudarem a regra no projeto.
+
+LIMITES
+- Testes feitos em Linux com fontes substitutas. A conferência final de aparência, em especial fontes e DPI, deve ser feita no Windows.
+- O Tkinter não tem cantos arredondados nem sombras reais; o visual usa bordas finas e cores.

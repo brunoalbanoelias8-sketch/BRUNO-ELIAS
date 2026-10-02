@@ -1,0 +1,8 @@
+V146 — CHECKLIST
+[x] py_compile exato_central_fiscal.py
+[x] 11 telas abrem sem erro (test_v146_theme_ui)
+[x] Topo acompanha a navegação
+[x] Tela Certificado: busca, filtros, vencimento, seleção e Continuar
+[x] 13/13 núcleos fiscais SAME
+[x] 31/31 assets SAME
+[ ] Conferência visual no Windows (fontes/DPI) — pendente do usuário

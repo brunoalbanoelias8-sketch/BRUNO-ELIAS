@@ -1,0 +1,23 @@
+PROMPT DE CONTINUIDADE — EXATO CENTRAL FISCAL V146
+
+ESTADO ATUAL
+- V146 é a V145 com novo tema visual em todas as abas (docs/V146_NOTAS.txt). Nenhuma regra fiscal ou de dados foi alterada.
+- O projeto é conduzido no Claude. Código no GitHub: brunoalbanoelias8-sketch/BRUNO-ELIAS, pasta exato/.
+
+REGRAS QUE CONTINUAM VALENDO
+- Não quebrar funções validadas.
+- Não alterar os 13 núcleos fiscais protegidos sem autorização explícita.
+- Só criar nova Vxxx com autorização expressa.
+- Dados persistentes ficam em %LOCALAPPDATA%\Exato\Central Fiscal\Dados; nunca criar banco novo por versão.
+- Cada versão entrega NOTAS, CONTINUIDADE, CHECKLIST e comparação dos núcleos protegidos.
+
+TEMA VISUAL (V146)
+- Cores em constantes no topo de exato_central_fiscal.py: BG, SIDEBAR_BG, HEADER_BG, RED, RED_DARK, RED_SOFT, BORDER, MUTED, TEXT.
+- Estilos ttk em App._configure_styles. Topo em _build_header, menu em _build_body/_make_nav/_set_active_nav.
+- Ambiente de teste de interface: Python 3.12 + python3-tk + pillow + reportlab, com xvfb-run. EXATO_DATA_DIR aponta para uma pasta temporária.
+
+PENDÊNCIAS (herdadas da V145 + visual)
+1. Revisar no Windows fontes, DPI e telas pequenas.
+2. Botões ainda em MAIÚSCULAS em várias telas (texto no código); trocar por capitalização normal onde fizer sentido.
+3. Polir telas internas (Documentos, Auditoria, Manutenção) com o mesmo padrão de cartões e etiquetas da tela Certificado.
+4. Pendências da V145: acesso automático ao SAT, resultado "Concluído" da busca, Exato IA (_natural_number_key), Central /auth/import_users, Python 3.12 nos .bat, fluidez na troca de abas.

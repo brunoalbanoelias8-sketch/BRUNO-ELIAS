@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V146
+
+Evolução da V145 com novo tema visual moderno em todas as abas: topo claro com navegação por trilha, barra lateral renovada, cartões de borda suave, tabelas e botões padronizados. Tela Certificado redesenhada com busca e filtros. Nenhuma regra fiscal foi alterada.
