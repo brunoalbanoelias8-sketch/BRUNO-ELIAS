@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V144
+
+Evolução da V143 com redesign da tela Empresas, alinhada ao rascunho visual aprovado, incluindo cards de status, busca, tabela com badges semânticos, legendas e ações. A lógica de atualização/última busca permanece separada.
