@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V150
+
+Ajustes da aba NFS-e a partir do uso real (CNPJ automático pelo certificado, período, filtro Prestados/Tomados, PDF da relação, nomes corrigidos), cadastro individual de empresa, datas e CNPJ com separador automático e revisão das mensagens para não mostrar linguagem de programação. Nenhuma regra fiscal existente foi alterada.
