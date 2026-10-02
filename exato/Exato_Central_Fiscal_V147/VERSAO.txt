@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V147
+
+V147 = V146 consolidada. Reúne tudo o que foi entregue sob o nome V146 em vários pacotes (tema moderno, layout responsivo, Exatinho flutuante, painel Hoje, selos, telas vazias e contador de pendências). Ignore os pacotes anteriores chamados V146.
