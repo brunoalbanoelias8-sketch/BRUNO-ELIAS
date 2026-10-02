@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V155
+
+Exatinho conversando: perguntas sobre os seus dados, resumo do dia com botões e pedidos que executam tarefas (com confirmação). Nenhuma regra fiscal existente foi alterada.
