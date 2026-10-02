@@ -18,6 +18,8 @@ Versão atual entregue: **V151** (`exato/Exato_Central_Fiscal_V151/`). Regras do
 ## Feedbacks do usuário para a V152 (registrados, ainda não feitos)
 1. **NFS-e, lista de notas esmagada** (notebook ≈1366×768): com a busca concluída, os cartões (Notas no período / Prestados / Tomados / Canceladas) e a faixa de resultado ocupam quase toda a altura e a tabela fica com ~1 linha visível. Reorganizar para a lista ter altura útil (cartões compactos, seções recolhíveis, tabela com altura mínima e rolagem da página).
 
+2. **NFS-e, relatório mensal de verdade**: hoje o "consolidado por pasta" (`NFS-e_<tipo>_<aaaa>-<mm>_consolidado.pdf`) é só um PDF com uma página de DANFSe por nota (sem soma), a "relação" (`generate_nfse_list_pdf`) é uma lista simples do filtro, e o "Resumo mensal" só traz totais por mês. Proposta: relatório mensal em lote = um PDF por mês e por tipo (Prestados/Tomados) com todas as notas do mês em lista + totais (quantidade, valor, canceladas separadas), gerado também ao salvar os XMLs (na pasta do mês) e por botão para o período escolhido (um arquivo por mês ou um só com seção por mês). Confirmar com o usuário o formato exato ao fazer a V152.
+
 ## Ideias ainda não feitas
 - NFS-e no relatório e na auditoria (hoje separadas de propósito, por segurança).
 - Busca em lote por usuário e senha (clientes sem certificado).
