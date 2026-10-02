@@ -58,15 +58,21 @@ try:
     assert app.header_search.cget('text')=='⌕'
     assert app.nav_documents.cget('text')=='▤'
     app._show_webservice_test(); app.update(); app.update()
-    # Todos os botões da linha de ações ficam dentro da área visível da página (nenhum fica escondido).
-    canvas_right=app.workspace_canvas.winfo_rootx()+app.workspace_canvas.winfo_width()
+    # Nenhum botão da linha de ações fica fora da PÁGINA (em janelas estreitas a página rola na horizontal).
+    page_left=app.page_host.winfo_rootx(); page_right=page_left+app.page_host.winfo_width()
     for b in (app.sync_all_btn,app.multi_company_btn,app.save_btn,app.audit_btn,app.pdf_btn):
-        assert b.winfo_rootx()>=app.workspace_canvas.winfo_rootx() and b.winfo_rootx()+b.winfo_width()<=canvas_right,(b.cget('text'),b.winfo_rootx())
+        assert b.winfo_rootx()>=page_left and b.winfo_rootx()+b.winfo_width()<=page_right,(b.cget('text'),b.winfo_rootx(),page_right)
     # A página sempre começa no topo (sem centralização vertical do Canvas).
     app._show_companies(); app.update(); app.update()
     assert app.page_host.winfo_y()==0
     app.geometry('1366x650+0+0'); app.update(); app.update()
     assert app.sidebar.winfo_width()==232 and app.nav_documents.cget('text').endswith('Documentos Fiscais') and app.ia_float_bubble.winfo_manager()
+    # Em 1366 px (sem rolagem horizontal) todos os botões ficam dentro da área VISÍVEL.
+    app._show_webservice_test(); app.update(); app.update()
+    assert not app.workspace_hscroll.winfo_ismapped()
+    vis_left=app.workspace_canvas.winfo_rootx(); vis_right=vis_left+app.workspace_canvas.winfo_width()
+    for b in (app.sync_all_btn,app.multi_company_btn,app.save_btn,app.audit_btn,app.pdf_btn):
+        assert b.winfo_rootx()>=vis_left and b.winfo_rootx()+b.winfo_width()<=vis_right,('1366',b.cget('text'),b.winfo_rootx(),vis_right)
     assert 'Ctrl+K' in app.header_search.cget('text')
     # Painel "Hoje": prioriza o que precisa de atenção.
     now=m.datetime(2026,10,2,12,0)
