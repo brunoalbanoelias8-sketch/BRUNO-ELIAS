@@ -68,6 +68,27 @@ try:
     app.geometry('1366x650+0+0'); app.update(); app.update()
     assert app.sidebar.winfo_width()==232 and app.nav_documents.cget('text').endswith('Documentos Fiscais') and app.ia_float_bubble.winfo_manager()
     assert 'Ctrl+K' in app.header_search.cget('text')
+    # Painel "Hoje": prioriza o que precisa de atenção.
+    now=m.datetime(2026,10,2,12,0)
+    items=m.build_today_items(
+        companies=[{'cnpj':'1','name':'ALFA','last_sync':''},{'cnpj':'2','name':'BETA','last_sync':'2026-10-02T08:00:00'}],
+        certificate={'FriendlyName':'ALFA:1','NotAfter':'2026-10-05T00:00:00','Thumbprint':'A'},
+        certificates=[{'FriendlyName':'GAMA:3','NotAfter':'2026-10-20T00:00:00','Thumbprint':'B'}],
+        runs=[{'status':'Concluído com observações','finished_at':'2026-10-01T10:00:00'}],audits=[],now=now)
+    kinds=[(i['severity'],i['action']) for i in items]
+    assert kinds[0][0]=='alta' and ('alta','certificate') in kinds and ('alta','companies') in kinds and ('atencao','pending') in kinds, kinds
+    assert items[-1]['severity']=='ok' and 'Última busca' in items[-1]['title']
+    ok=m.build_today_items([{'cnpj':'2','name':'BETA','last_sync':'2026-10-02T08:00:00'}],{'NotAfter':'2027-05-05T00:00:00'},[],[],[],now=now)
+    assert ok[0]['title']=='Tudo em dia'
+    app._show_dashboard(); app.update()
+    assert len(app.today_body.winfo_children())>=1
+    # Selos nas tabelas e telas vazias com orientação.
+    assert m.App._doc_status_badge('Cancelado')==('✕ Cancelado','cancelado')
+    assert m.App._run_status_badge('Concluído com observações')[1]=='run_warn'
+    app._show_documents(); app._refresh_documents_list(); app.update()
+    assert app.doc_tree in app._empty_states, 'tela vazia de documentos'
+    app._show_history(); app._refresh_history(); app.update()
+    assert app.history_tree in app._empty_states
     # Exatinho: o painel flutua e não muda a largura do menu.
     app._exatinho_open_panel(first=True); app.update()
     assert app.sidebar.winfo_width()==232 and app.ia_sidebar_interaction.winfo_x()>=232

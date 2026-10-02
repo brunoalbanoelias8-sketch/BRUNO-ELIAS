@@ -9,4 +9,5 @@ V146 — CHECKLIST
 [x] Importação de usuários da Central sem elevação de perfil (teste reproduz falha na V145)
 [x] Layout responsivo: 1366x650, 1100x600 e 1000x560 (menu de ícones, botões que quebram, rolagem de segurança)
 [x] Exatinho flutuante sem alterar o menu
+[x] Painel Hoje, selos de situação e telas vazias (test_v146_theme_ui)
 [ ] Conferência visual no Windows (fontes/DPI) — pendente do usuário

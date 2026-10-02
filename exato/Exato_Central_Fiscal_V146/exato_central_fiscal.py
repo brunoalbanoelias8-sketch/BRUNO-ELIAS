@@ -91,6 +91,80 @@ AUDIT_FAMILY_LABELS = {'nfe':'NF-e','nfce':'NFC-e'}
 AUDIT_FAMILY_MODELS = {'nfe':'55','nfce':'65'}
 
 
+def build_today_items(companies, certificate=None, certificates=None, runs=None, audits=None, now=None):
+    """Itens do painel "Hoje" do Início, em ordem de prioridade.
+
+    Cada item é um dict: severity ('alta' | 'atencao' | 'ok'), title, detail e action
+    (chave de uma ação da interface: companies, certificate, pending, documents, sync).
+    """
+    now = now or datetime.now()
+    items = []
+
+    def days_left(cert):
+        try:
+            dt = datetime.fromisoformat(str((cert or {}).get('NotAfter', '')).replace('Z', '+00:00')).replace(tzinfo=None)
+            return (dt - now).days
+        except Exception:
+            return None
+
+    # Certificado digital
+    if certificate:
+        left = days_left(certificate)
+        name = certificate.get('FriendlyName') or certificate.get('Subject') or 'Certificado selecionado'
+        name = str(name).split(':')[0][:48]
+        if left is not None and left <= 30:
+            items.append({'severity': 'alta' if left <= 7 else 'atencao',
+                          'title': f'Certificado vence em {max(left, 0)} dia(s)',
+                          'detail': name, 'action': 'certificate', 'action_label': 'Ver certificados'})
+    else:
+        items.append({'severity': 'atencao', 'title': 'Nenhum certificado selecionado',
+                      'detail': 'Escolha o certificado digital para consultar os documentos fiscais.',
+                      'action': 'certificate', 'action_label': 'Escolher certificado'})
+    others = [c for c in (certificates or []) if c is not certificate and (days_left(c) is not None and days_left(c) <= 30)
+              and c.get('Thumbprint') != (certificate or {}).get('Thumbprint')]
+    if others:
+        items.append({'severity': 'atencao', 'title': f'{len(others)} outro(s) certificado(s) vencendo em até 30 dias',
+                      'detail': ', '.join(str(c.get('FriendlyName') or c.get('Subject') or '').split(':')[0][:28] for c in others[:3]),
+                      'action': 'certificate', 'action_label': 'Ver certificados'})
+
+    # Empresas desatualizadas
+    stale = [c for c in (companies or []) if _company_update_status(c.get('last_sync'), now) == 'Desatualizada']
+    warn = [c for c in (companies or []) if _company_update_status(c.get('last_sync'), now) == 'Atenção']
+    if stale:
+        items.append({'severity': 'alta', 'title': f'{len(stale)} empresa(s) desatualizada(s)',
+                      'detail': ', '.join(str(c.get('name') or c.get('cnpj') or '')[:26] for c in stale[:3]) + (' …' if len(stale) > 3 else ''),
+                      'action': 'companies', 'action_label': 'Abrir Empresas'})
+    if warn:
+        items.append({'severity': 'atencao', 'title': f'{len(warn)} empresa(s) em atenção',
+                      'detail': 'Última busca entre 24h e 72h.', 'action': 'companies', 'action_label': 'Abrir Empresas'})
+
+    # Pendências (capturas com observação e auditorias com divergência)
+    failed = [r for r in (runs or []) if r.get('status') in ('Concluído com observações', 'Não concluído', 'Cancelado') or r.get('error_text')]
+    audit_failed = [a for a in (audits or []) if a.get('status') != 'conforme' or int(a.get('missing_count') or 0) > 0 or int(a.get('divergence_count') or 0) > 0]
+    if audit_failed or failed:
+        parts = []
+        if audit_failed: parts.append(f'{len(audit_failed)} auditoria(s)')
+        if failed: parts.append(f'{len(failed)} captura(s)')
+        items.append({'severity': 'alta' if audit_failed else 'atencao', 'title': f'{len(audit_failed) + len(failed)} pendência(s) para revisar',
+                      'detail': ' e '.join(parts), 'action': 'pending', 'action_label': 'Ver pendências'})
+
+    # Última busca
+    last = (runs or [None])[0]
+    if last and last.get('finished_at'):
+        try:
+            when = datetime.fromisoformat(str(last['finished_at'])).strftime('%d/%m %H:%M')
+        except Exception:
+            when = str(last.get('finished_at'))[:16]
+        items.append({'severity': 'ok', 'title': f'Última busca: {when}',
+                      'detail': str(last.get('status') or ''), 'action': 'documents', 'action_label': 'Ver documentos'})
+    if not any(i['severity'] in ('alta', 'atencao') for i in items):
+        items.insert(0, {'severity': 'ok', 'title': 'Tudo em dia', 'detail': 'Nada precisa de atenção agora.',
+                         'action': 'sync', 'action_label': 'Buscar XML'})
+    order = {'alta': 0, 'atencao': 1, 'ok': 2}
+    items.sort(key=lambda i: order[i['severity']])
+    return items
+
+
 def _natural_number_key(value):
     """Chave de ordenação natural para números de documentos (2 antes de 10; texto depois de números)."""
     text = str(value or '').strip()
@@ -9840,7 +9914,11 @@ class App(tk.Tk):
         """Mostra apenas os certificados que combinam com a busca e o filtro, preservando a ordem alfabética."""
         tree = getattr(self, 'tree', None)
         certs = getattr(self, 'certificates', None) or []
-        if tree is None or not certs:
+        if tree is None:
+            return
+        if not certs:
+            if getattr(self, '_cert_loaded_once', False):
+                self._set_empty_state(tree, True, 'Nenhum certificado válido encontrado', 'Instale o certificado digital no Windows e clique em Atualizar.', 'Atualizar', self.refresh_certificates)
             return
         query = _normalize_search_text(self._cert_query.get()) if hasattr(self, '_cert_query') else ''
         digits = re.sub(r'\D', '', self._cert_query.get()) if hasattr(self, '_cert_query') else ''
@@ -9866,6 +9944,10 @@ class App(tk.Tk):
                 tree.detach(iid)
         if hasattr(self, 'cert_count_label'):
             self.cert_count_label.config(text=f"{shown} de {len(certs)} certificado(s) válido(s) exibido(s)")
+        if shown:
+            self._set_empty_state(tree, False)
+        else:
+            self._set_empty_state(tree, True, 'Nenhum certificado encontrado', 'Nenhum certificado combina com a busca ou o filtro escolhido.')
 
     def _show_certificate_header_state(self):
         if hasattr(self, "header_context"):
@@ -9934,6 +10016,7 @@ class App(tk.Tk):
         valid_certs = [c for c in certs if c.get("Status") != "Expirado"]
         valid_certs.sort(key=lambda c: (c.get("FriendlyName") or c.get("Subject") or "Sem identificação").casefold())
         self.certificates = valid_certs
+        self._cert_loaded_once = True
         if error and not valid_certs:
             self.set_status(error)
             return
@@ -11696,13 +11779,83 @@ class App(tk.Tk):
     def _show_dashboard(self):
         if getattr(self,'dashboard_frame',None) is None:
             self.dashboard_frame=tk.Frame(self.page_host,bg=BG); self._build_dashboard_contents()
-        self._show_frame(self.dashboard_frame,'dashboard'); self._refresh_dashboard_async()
+        self._show_frame(self.dashboard_frame,'dashboard'); self._refresh_today_panel(); self._refresh_dashboard_async()
+
+    def _set_empty_state(self, tree, show, title='', text='', action_label='', action=None):
+        """Cartão de orientação sobre uma tabela vazia (em vez de um quadro em branco)."""
+        states = self.__dict__.setdefault('_empty_states', {})
+        frame = states.get(tree)
+        if frame is not None:
+            try: frame.destroy()
+            except Exception: pass
+            states.pop(tree, None)
+        if not show:
+            return
+        frame = tk.Frame(tree.master, bg=WHITE)
+        tk.Label(frame, text='◌', bg=WHITE, fg='#CBD5E1', font=('Segoe UI', 26)).pack()
+        tk.Label(frame, text=title, bg=WHITE, fg=TEXT, font=('Segoe UI Semibold', 12)).pack(pady=(2, 2))
+        tk.Label(frame, text=text, bg=WHITE, fg=MUTED, font=('Segoe UI', 9), wraplength=420, justify='center').pack()
+        if action_label and action:
+            ttk.Button(frame, text=action_label, style='Primary.TButton', command=action).pack(pady=(12, 0))
+        frame.place(relx=0.5, y=44, anchor='n')
+        frame.lift()
+        states[tree] = frame
+
+    @staticmethod
+    def _doc_status_badge(status):
+        status = str(status or '')
+        return {'Autorizado': ('● Autorizado', ''), 'Cancelado': ('✕ Cancelado', 'cancelado'), 'Evento': ('◌ Evento', 'evento')}.get(status, (status, ''))
+
+    @staticmethod
+    def _run_status_badge(status):
+        status = str(status or '')
+        if status == 'Concluído': return '✓ Concluído', 'run_ok'
+        if status == 'Em andamento': return '↻ Em andamento', 'run_busy'
+        if status == 'Cancelado': return '⊘ Cancelado', 'run_cancel'
+        if status == 'Aguardando próxima janela': return '◷ Aguardando próxima janela', 'run_wait'
+        if status: return '⚠ ' + status, 'run_warn'
+        return status, ''
+
+    def _today_action(self, key):
+        {'companies': self._show_companies, 'certificate': self._show_certificate_list, 'pending': self._show_pending,
+         'documents': self._show_documents, 'sync': self._show_webservice_test}.get(key, self._show_dashboard)()
+
+    def _refresh_today_panel(self):
+        """Atualiza o painel "Hoje" com o que precisa de atenção, e um botão que leva à tela certa."""
+        if not hasattr(self, 'today_body'):
+            return
+        try:
+            items = build_today_items(db_list_companies(500), self.selected, getattr(self, 'certificates', []),
+                                      db_list_runs(50), _audit_history_load())
+        except Exception as exc:
+            items = [{'severity': 'atencao', 'title': 'Não foi possível montar o resumo de hoje', 'detail': str(exc)[:90], 'action': 'dashboard', 'action_label': 'Atualizar'}]
+        for child in self.today_body.winfo_children():
+            child.destroy()
+        colors = {'alta': (RED, '#FEF2F2'), 'atencao': ('#D97706', '#FFFBEB'), 'ok': (GREEN, '#EDF9F2')}
+        urgent = sum(1 for i in items if i['severity'] != 'ok')
+        self.today_summary.config(text=(f'{urgent} item(ns) pedem atenção' if urgent else 'Tudo certo por enquanto') + f"  ·  {datetime.now().strftime('%d/%m/%Y')}")
+        for item in items[:6]:
+            fg, soft = colors[item['severity']]
+            row = tk.Frame(self.today_body, bg=WHITE); row.pack(fill='x', pady=3)
+            tk.Frame(row, bg=fg, width=4).pack(side='left', fill='y')
+            box = tk.Frame(row, bg=soft); box.pack(side='left', fill='x', expand=True)
+            text = tk.Frame(box, bg=soft); text.pack(side='left', fill='x', expand=True, padx=12, pady=7)
+            tk.Label(text, text=item['title'], bg=soft, fg=TEXT, font=('Segoe UI Semibold', 10), anchor='w').pack(fill='x')
+            if item.get('detail'):
+                tk.Label(text, text=item['detail'], bg=soft, fg=MUTED, font=('Segoe UI', 8), anchor='w').pack(fill='x')
+            ttk.Button(box, text=item['action_label'], style='CompactSecondary.TButton',
+                       command=lambda k=item['action']: self._today_action(k)).pack(side='right', padx=10, pady=6)
 
     def _build_dashboard_contents(self):
         head=tk.Frame(self.dashboard_frame,bg=BG); head.pack(fill='x',padx=22)
         tk.Label(head,text='Visão geral fiscal',bg=BG,fg=TEXT,font=('Segoe UI Semibold',20)).pack(anchor='w')
         tk.Label(head,text='Uma leitura rápida da situação fiscal da empresa selecionada.',bg=BG,fg=MUTED,font=('Segoe UI',10)).pack(anchor='w',pady=(3,2))
         self.dash_context=tk.Label(head,text='',bg=BG,fg=MUTED,font=('Segoe UI Semibold',9)); self.dash_context.pack(anchor='w',pady=(0,14))
+        self.today_card=tk.Frame(self.dashboard_frame,bg=WHITE,highlightbackground=BORDER,highlightthickness=1); self.today_card.pack(fill='x',padx=22,pady=(0,10))
+        today_head=tk.Frame(self.today_card,bg=WHITE); today_head.pack(fill='x',padx=18,pady=(12,4))
+        tk.Label(today_head,text='Hoje',bg=WHITE,fg=TEXT,font=('Segoe UI Semibold',13)).pack(side='left')
+        self.today_summary=tk.Label(today_head,text='',bg=WHITE,fg=MUTED,font=('Segoe UI',9)); self.today_summary.pack(side='left',padx=(10,0),pady=(3,0))
+        self.today_body=tk.Frame(self.today_card,bg=WHITE); self.today_body.pack(fill='x',padx=18,pady=(0,10))
         overview=tk.Frame(self.dashboard_frame,bg=BG); overview.pack(fill='x',padx=22)
         self.dash_values={}
         main_grid=tk.Frame(overview,bg=BG); main_grid.pack(fill='x')
@@ -12633,8 +12786,9 @@ class App(tk.Tk):
         self.doc_archive_status_label=tk.Label(self.documents_frame,text='ARQUIVO FISCAL LOCAL: —',bg=BG,fg=MUTED,font=('Segoe UI Semibold',8),anchor='e'); self.doc_archive_status_label.pack(anchor='e',padx=16,pady=(0,4))
         wrap=tk.Frame(self.documents_frame,bg=WHITE,highlightbackground=BORDER,highlightthickness=1); wrap.pack(fill='both',expand=True,padx=16)
         cols=('tipo','numero','empresa','direcao','data','valor','situacao','exportacao'); self.doc_tree=ttk.Treeview(wrap,columns=cols,show='headings',selectmode='extended')
-        heads={'tipo':'Tipo','numero':'Nº','empresa':'Empresa','direcao':'Movimentação','data':'Emissão','valor':'Valor','situacao':'Situação','exportacao':'Exportação'}; widths={'tipo':80,'numero':80,'empresa':290,'direcao':100,'data':95,'valor':110,'situacao':110,'exportacao':110}
+        heads={'tipo':'Tipo','numero':'Nº','empresa':'Empresa','direcao':'Movimentação','data':'Emissão','valor':'Valor','situacao':'Situação','exportacao':'Exportação'}; widths={'tipo':80,'numero':80,'empresa':290,'direcao':100,'data':95,'valor':110,'situacao':130,'exportacao':130}
         for c in cols: self.doc_tree.heading(c,text=heads[c]); self.doc_tree.column(c,width=widths[c],anchor='w')
+        self.doc_tree.tag_configure('cancelado',foreground='#B91C1C',background='#FEF2F2'); self.doc_tree.tag_configure('evento',foreground=MUTED)
         self.doc_tree.column('valor',anchor='e'); self.doc_tree.column('numero',anchor='center'); self.doc_tree.column('data',anchor='center'); self.doc_tree.column('situacao',anchor='center'); self.doc_tree.column('exportacao',anchor='center')
         self.doc_tree.pack(side='left',fill='both',expand=True,padx=(4,0),pady=4); sc=ttk.Scrollbar(wrap,orient='vertical',command=self.doc_tree.yview); self.doc_tree.configure(yscrollcommand=sc.set); sc.pack(side='right',fill='y',padx=(0,4),pady=4)
         self.doc_tree.bind('<<TreeviewSelect>>',self._on_document_selection); self.doc_tree.bind('<Double-1>',self._open_selected_document); self.doc_tree.bind('<Button-3>',self._document_context_menu); self.doc_tree.bind('<Control-a>',lambda _e:(self._select_all_documents(),'break')[1])
@@ -12680,7 +12834,16 @@ class App(tk.Tk):
         self._doc_row_map={}
         for idx,r in enumerate(rows,1):
             iid=f'doc_{idx}'; self._doc_row_map[iid]=r
-            self.doc_tree.insert('', 'end', iid=iid, values=(r.get('doc_type'),r.get('number'),r.get('company_name') or r.get('cnpj'),r.get('direction'),_format_user_date(r.get('issued_at')), _format_brl(r.get('value')),r.get('status') or '', '✓ Exportado' if r.get('exported_any') else 'Não exportado'))
+            badge,tag=self._doc_status_badge(r.get('status'))
+            self.doc_tree.insert('', 'end', iid=iid, values=(r.get('doc_type'),r.get('number'),r.get('company_name') or r.get('cnpj'),r.get('direction'),_format_user_date(r.get('issued_at')), _format_brl(r.get('value')),badge, '✓ Exportado' if r.get('exported_any') else '○ Não exportado'), tags=((tag,) if tag else ()))
+        try: archive_total=int(db_local_archive_stats('')['documents'])
+        except Exception: archive_total=len(rows)
+        if rows:
+            self._set_empty_state(self.doc_tree,False)
+        elif archive_total==0:
+            self._set_empty_state(self.doc_tree,True,'Nenhum documento ainda','O Arquivo Fiscal Local está vazio. Faça a primeira busca para trazer os XMLs da empresa.','Buscar XML',self._show_webservice_test)
+        else:
+            self._set_empty_state(self.doc_tree,True,'Nenhum documento com esses filtros','Ajuste ou limpe os filtros acima para ver os documentos do Arquivo Fiscal Local.')
         self._on_document_selection()
 
     def _select_all_documents(self):
@@ -13161,8 +13324,9 @@ class App(tk.Tk):
         ttk.Button(filters,text='ATUALIZAR',style='Secondary.TButton',command=self._refresh_history).pack(side='left',padx=(6,0),pady=5)
         wrap=tk.Frame(self.history_frame,bg=WHITE,highlightbackground=BORDER,highlightthickness=1); wrap.pack(fill='both',expand=True,padx=20,pady=(0,6))
         cols=('empresa','cnpj','tipo','inicio','duracao','encontrados','novos','existentes','status','erro'); self.history_tree=ttk.Treeview(wrap,columns=cols,show='headings',selectmode='browse')
-        heads={'empresa':'Empresa','cnpj':'CNPJ','tipo':'Tipo','inicio':'Início','duracao':'Duração','encontrados':'Encontrados','novos':'Novos','existentes':'Já existentes','status':'Status','erro':'Observação'}; widths={'empresa':260,'cnpj':130,'tipo':90,'inicio':145,'duracao':85,'encontrados':90,'novos':75,'existentes':90,'status':110,'erro':260}
-        for c in cols: self.history_tree.heading(c,text=heads[c]); self.history_tree.column(c,width=widths[c],anchor='w')
+        heads={'empresa':'Empresa','cnpj':'CNPJ','tipo':'Tipo','inicio':'Início','duracao':'Duração','encontrados':'Encontrados','novos':'Novos','existentes':'Já existentes','status':'Status','erro':'Observação'}; widths={'empresa':210,'cnpj':140,'tipo':60,'inicio':130,'duracao':80,'encontrados':100,'novos':65,'existentes':105,'status':220,'erro':170}
+        for c in cols: self.history_tree.heading(c,text=heads[c]); self.history_tree.column(c,width=widths[c],minwidth=(150 if c=='status' else 50),anchor='w')
+        self.history_tree.configure(displaycolumns=('empresa','cnpj','inicio','duracao','encontrados','novos','existentes','status'))  # a observação aparece no painel de detalhes abaixo
         self.history_tree.pack(side='left',fill='both',expand=True); sc=ttk.Scrollbar(wrap,orient='vertical',command=self.history_tree.yview); self.history_tree.configure(yscrollcommand=sc.set); sc.pack(side='right',fill='y')
         self.history_tree.bind('<<TreeviewSelect>>',self._on_history_selection); self._history_row_map={}
         detail=tk.Frame(self.history_frame,bg=WHITE,highlightbackground=BORDER,highlightthickness=1); detail.pack(fill='x',padx=20,pady=(0,6))
@@ -13209,6 +13373,8 @@ class App(tk.Tk):
         if not hasattr(self,'history_tree'): return
         for i in self.history_tree.get_children(): self.history_tree.delete(i)
         self._history_row_map={}
+        for _t,_fg,_bg in [('run_ok',TEXT,''),('run_warn',TEXT,'#FFFBEB'),('run_cancel',TEXT,'#FEF2F2'),('run_busy',TEXT,'#F0F9FF'),('run_wait',MUTED,'')]:
+            self.history_tree.tag_configure(_t,foreground=_fg,**({'background':_bg} if _bg else {}))
         now=datetime.now(); filt=getattr(self,'history_filter_var',tk.StringVar(value='Todos')).get()
         for idx,r in enumerate(db_list_runs(500),1):
             status=r.get('status') or ''
@@ -13221,7 +13387,13 @@ class App(tk.Tk):
             try:
                 a=datetime.fromisoformat(started); b=datetime.fromisoformat(finished) if finished else now; sec=max(0,int((b-a).total_seconds())); dur=f'{sec//3600}h {(sec%3600)//60}m {sec%60}s' if sec>=3600 else f'{sec//60}m {sec%60}s'
             except Exception: pass
-            iid=f'h_{idx}'; self._history_row_map[iid]=r; self.history_tree.insert('', 'end', iid=iid, values=(empresa,_format_cnpj(cnpj),'Tudo',_format_user_date(started[:10])+(f' {started[11:16]}' if len(started)>=16 else ''),dur,r.get('total_found',0),r.get('new_count',0),r.get('duplicate_count',0),status,r.get('error_text') or ''))
+            iid=f'h_{idx}'; self._history_row_map[iid]=r; self.history_tree.insert('', 'end', iid=iid, values=(empresa,_format_cnpj(cnpj),'Tudo',_format_user_date(started[:10])+(f' {started[11:16]}' if len(started)>=16 else ''),dur,r.get('total_found',0),r.get('new_count',0),r.get('duplicate_count',0),self._run_status_badge(status)[0],r.get('error_text') or ''),tags=((self._run_status_badge(status)[1],) if status else ()))
+        if self.history_tree.get_children():
+            self._set_empty_state(self.history_tree,False)
+        elif filt=='Todos':
+            self._set_empty_state(self.history_tree,True,'Nenhuma busca registrada','Quando você buscar XMLs, cada operação aparece aqui com duração, volumes e situação.','Buscar XML',self._show_webservice_test)
+        else:
+            self._set_empty_state(self.history_tree,True,'Nenhuma operação com esse filtro','Escolha outro filtro de situação para ver o histórico.')
         self._on_history_selection()
 
     def _show_audit(self):
@@ -14335,7 +14507,9 @@ class App(tk.Tk):
             try: self._ia_emit_event('PENDING_REVIEW',documents=pending_total)
             except Exception: pass
         if hasattr(self,'nav_pending'):
-            self.nav_pending.config(text=f'!   Pendências ({pending_total})' if pending_total else '!   Pendências')
+            _pt=f'!   Pendências ({pending_total})' if pending_total else '!   Pendências'
+            self._sidebar_nav_text[self.nav_pending]=_pt
+            if getattr(self,'_sidebar_mode','full')!='rail': self.nav_pending.config(text=_pt)
         if hasattr(self,'pending_summary_labels'):
             self.pending_summary_labels['capture'].config(text=str(len(failed)))
             self.pending_summary_labels['audit'].config(text=str(len(audit_failed)))

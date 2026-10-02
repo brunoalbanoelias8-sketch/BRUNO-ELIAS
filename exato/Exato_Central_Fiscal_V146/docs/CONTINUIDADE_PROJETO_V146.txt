@@ -22,6 +22,10 @@ PADRÃO RESPONSIVO (V146)
 - O painel do Exatinho é flutuante (App._exatinho_place_panel); nunca redimensione o menu para abri-lo.
 - Teste de tamanhos: SIZE=1366x650 / 1100x600 / 1000x560 no ambiente xvfb (ver testes/test_v146_theme_ui.py).
 
+IDEIAS AINDA NÃO FEITAS
+- Avisos que somem sozinhos (toasts), contador de pendências em bolinha vermelha, tema escuro, atalhos Ctrl+1..9.
+- Selos em pílula nas demais tabelas só são possíveis com tabela própria (como em Empresas); no Treeview usamos símbolos e cores de linha.
+
 PENDÊNCIAS (herdadas da V145 + visual)
 1. Revisar no Windows fontes, DPI e telas pequenas.
 2. Botões: a capitalização é ajustada em tempo de execução (_sentence_case_button_text); ao editar textos novos, já escreva em capitalização normal.
