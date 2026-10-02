@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V145
+
+Correção do Arquivo Fiscal Local a partir da V144: a chave de acesso volta a ser gravada com os 44 dígitos, eventos (cancelamento, carta de correção) deixam de ser contados como notas e notas canceladas passam a ser marcadas como Cancelado. Inclui ajuste único do banco existente, com backup automático. Nenhuma tela foi redesenhada nesta versão.
