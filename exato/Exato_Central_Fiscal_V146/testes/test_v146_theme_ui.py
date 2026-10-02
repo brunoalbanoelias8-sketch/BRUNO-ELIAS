@@ -89,6 +89,17 @@ try:
     assert app.doc_tree in app._empty_states, 'tela vazia de documentos'
     app._show_history(); app._refresh_history(); app.update()
     assert app.history_tree in app._empty_states
+    # Contador de pendências no menu (bolinha), no menu completo e no menu de ícones.
+    import sqlite3
+    c=sqlite3.connect(m.DB_PATH); c.execute("INSERT INTO sync_runs(cnpj,started_at,finished_at,status,total_found,new_count,duplicate_count,error_text) VALUES('11111111000191','2026-10-01T10:00:00','2026-10-01T10:05:00','Concluído com observações',1,0,1,'x')"); c.commit(); c.close()
+    app._update_pending_badge(); app.update()
+    assert app._pending_total>=1 and app.pending_badge.cget('text')==str(app._pending_total) and app.pending_badge.winfo_manager()=='place'
+    app._update_pending_badge(25); app.update(); assert app.pending_badge.cget('text')=='9+'
+    app.geometry('1100x680+0+0'); app.update(); app.update()
+    assert app.pending_badge.winfo_manager()=='place' and app.nav_pending.cget('text')=='!'
+    app.geometry('1366x650+0+0'); app.update(); app.update()
+    assert app.nav_pending.cget('text').endswith('Pendências')
+    app._update_pending_badge(0); app.update(); assert not app.pending_badge.winfo_manager()
     # Exatinho: o painel flutua e não muda a largura do menu.
     app._exatinho_open_panel(first=True); app.update()
     assert app.sidebar.winfo_width()==232 and app.ia_sidebar_interaction.winfo_x()>=232

@@ -10,4 +10,5 @@ V146 — CHECKLIST
 [x] Layout responsivo: 1366x650, 1100x600 e 1000x560 (menu de ícones, botões que quebram, rolagem de segurança)
 [x] Exatinho flutuante sem alterar o menu
 [x] Painel Hoje, selos de situação e telas vazias (test_v146_theme_ui)
+[x] Contador de pendências no menu (completo e de ícones)
 [ ] Conferência visual no Windows (fontes/DPI) — pendente do usuário

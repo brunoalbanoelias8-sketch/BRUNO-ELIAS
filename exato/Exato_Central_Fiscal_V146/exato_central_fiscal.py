@@ -8159,7 +8159,7 @@ class App(tk.Tk):
         self.workspace=tk.Frame(shell,bg=BG); self.workspace.pack(side='left',fill='both',expand=True)
         self.workspace_canvas=tk.Canvas(self.workspace,bg=BG,highlightthickness=0,bd=0); self.workspace_scrollbar=ttk.Scrollbar(self.workspace,orient='vertical',command=self.workspace_canvas.yview); self.workspace_canvas.configure(yscrollcommand=self.workspace_scrollbar.set); self.workspace_scrollbar.pack(side='right',fill='y'); self.workspace_canvas.pack(side='left',fill='both',expand=True); self.workspace_hscroll=ttk.Scrollbar(self.workspace,orient='horizontal',command=self.workspace_canvas.xview); self.workspace_canvas.configure(xscrollcommand=self.workspace_hscroll.set)
         self.page_host=tk.Frame(self.workspace_canvas,bg=BG); self._workspace_window=self.workspace_canvas.create_window((0,0),window=self.page_host,anchor='nw'); self.page_host.bind('<Configure>',self._on_workspace_host_configure); self.workspace_canvas.bind('<Configure>',self._on_workspace_canvas_configure); self.workspace_canvas.bind('<Enter>',self._on_workspace_enter); self.workspace_canvas.bind('<Leave>',self._on_workspace_leave); self._workspace_mousewheel_bound=False
-        self.cert_frame=None; self._show_certificate_list()
+        self.cert_frame=None; self._show_certificate_list(); self.after(1200,self._schedule_pending_badge)
 
     def _build_floating_ia(self):
         """Exato IA vivo: renderização procedural contínua, sem troca de poses para simular animação.
@@ -9752,6 +9752,8 @@ class App(tk.Tk):
             self.ia_float_img.pack_configure(padx=(0 if rail else 0, 0 if rail else 4))
         except Exception:
             pass
+        try: self._update_pending_badge(getattr(self,'_pending_total',0))
+        except Exception: pass
         # busca rápida do topo
         try:
             self.header_search.config(text='⌕' if rail else '⌕   Buscar...    Ctrl+K')
@@ -9784,7 +9786,7 @@ class App(tk.Tk):
     def _show_frame(self, frame, active):
         self._hide_all_frames()
         frame.pack(fill="both",expand=True,padx=(24 if getattr(self, "compact_ui", True) else 32),pady=(16 if getattr(self, "compact_ui", True) else 22))
-        self.current_screen=active; self._set_active_nav(active); self._ia_float_on_screen(active)
+        self.current_screen=active; self._set_active_nav(active); self._ia_float_on_screen(active); self.after(250,self._update_pending_badge)
         try: self._ia_emit_event('NAVIGATED',screen=active)
         except Exception: pass
         def reset_scroll():
@@ -14495,21 +14497,54 @@ class App(tk.Tk):
         ttk.Button(actions,text='ABRIR AUDITORIA',style='Secondary.TButton',command=self._show_audit).pack(side='right',padx=(0,8))
         ttk.Button(actions,text='VER DOCUMENTOS',style='Secondary.TButton',command=self._show_documents).pack(side='right',padx=(0,8))
 
-    def _refresh_pending(self):
-        if not hasattr(self,'pending_text'): return
+    def _pending_summary(self):
+        """Capturas com observação e auditorias com divergência da empresa ativa (ou de todas, se nenhuma estiver ativa)."""
         cnpj=re.sub(r'\D','',self.cnpj_var.get().strip()) if hasattr(self,'cnpj_var') else ''
         runs=db_list_runs(50,cnpj)
         failed=[r for r in runs if r.get('status') in ('Concluído com observações','Não concluído','Cancelado') or r.get('error_text')]
         audits=[a for a in _audit_history_load() if not cnpj or re.sub(r'\D','',str(a.get('cnpj') or ''))==cnpj]
         audit_failed=[a for a in audits if a.get('status')!='conforme' or int(a.get('missing_count') or 0)>0 or int(a.get('divergence_count') or 0)>0]
+        return failed,audit_failed
+
+    def _update_pending_badge(self,total=None):
+        """Bolinha com o número de pendências ao lado de "Pendências" no menu (e sobre o ícone no menu compacto)."""
+        btn=getattr(self,'nav_pending',None)
+        if btn is None: return
+        if total is None:
+            try:
+                failed,audit_failed=self._pending_summary(); total=len(failed)+len(audit_failed)
+            except Exception:
+                total=0
+        self._pending_total=int(total)
+        badge=getattr(self,'pending_badge',None)
+        if badge is None:
+            badge=tk.Label(btn,bg='#F59E0B',fg=DARK,font=('Segoe UI Semibold',8),padx=6,pady=0,cursor='hand2')
+            badge.bind('<Button-1>',lambda e:self._show_pending(),add='+')
+            self.pending_badge=badge
+        if self._pending_total<=0:
+            badge.place_forget(); return
+        badge.config(text=('9+' if self._pending_total>9 else str(self._pending_total)))
+        if getattr(self,'_sidebar_mode','full')=='rail':
+            badge.place(relx=1.0,x=-6,y=2,anchor='ne')
+        else:
+            badge.place(relx=1.0,x=-14,rely=0.5,anchor='e')
+        badge.lift()
+
+    def _schedule_pending_badge(self):
+        try:
+            self._update_pending_badge()
+            self._pending_badge_job=self.after(60000,self._schedule_pending_badge)
+        except Exception:
+            pass
+
+    def _refresh_pending(self):
+        if not hasattr(self,'pending_text'): return
+        failed,audit_failed=self._pending_summary()
         pending_total=len(failed)+len(audit_failed)
         if pending_total:
             try: self._ia_emit_event('PENDING_REVIEW',documents=pending_total)
             except Exception: pass
-        if hasattr(self,'nav_pending'):
-            _pt=f'!   Pendências ({pending_total})' if pending_total else '!   Pendências'
-            self._sidebar_nav_text[self.nav_pending]=_pt
-            if getattr(self,'_sidebar_mode','full')!='rail': self.nav_pending.config(text=_pt)
+        self._update_pending_badge(pending_total)
         if hasattr(self,'pending_summary_labels'):
             self.pending_summary_labels['capture'].config(text=str(len(failed)))
             self.pending_summary_labels['audit'].config(text=str(len(audit_failed)))
@@ -14647,6 +14682,7 @@ class App(tk.Tk):
             if self._auto_job is not None: self.after_cancel(self._auto_job)
             if self._central_status_job is not None: self.after_cancel(self._central_status_job)
             if self._central_sync_job is not None: self.after_cancel(self._central_sync_job)
+            if getattr(self,'_pending_badge_job',None) is not None: self.after_cancel(self._pending_badge_job)
         except Exception: pass
         self.destroy()
 

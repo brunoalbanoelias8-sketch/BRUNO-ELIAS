@@ -48,6 +48,7 @@ PAINEL "HOJE", SELOS E TELAS VAZIAS
 24. Início: painel "Hoje" com o que precisa de atenção, em ordem de prioridade (certificado vencendo ou ausente, empresas desatualizadas ou em atenção, pendências e última busca), cada item com um botão que leva à tela certa. A regra está em build_today_items (função pura, testada).
 25. Documentos Fiscais: situação com selo em texto (● Autorizado, ✕ Cancelado, ◌ Evento), linha de cancelados destacada e exportação com ✓ / ○. Histórico: ✓ Concluído, ⚠ com observações, ⊘ Cancelado, ↻ Em andamento, linhas de atenção/cancelamento com fundo suave; coluna Observação saiu da grade (continua no painel de detalhes) e a coluna Tipo ficou oculta, para não cortar textos.
 26. Telas vazias com orientação (Documentos, Histórico e Certificados): mensagem, explicação e botão de ação (por exemplo "Buscar XML").
+28. Contador de pendências no menu: bolinha âmbar com o número ao lado de "Pendências" (e sobre o ícone no menu compacto; "9+" acima de 9). Atualiza ao iniciar, a cada navegação, a cada minuto e ao abrir a tela de Pendências, usando o mesmo cálculo da tela (_pending_summary). Clicar na bolinha abre Pendências.
 27. Menu: o contador de Pendências não se perde mais ao alternar entre menu completo e menu de ícones.
 Obs.: o Treeview do Tk não desenha selos coloridos por célula; os selos coloridos em formato de pílula existem na tela Empresas (tabela própria).
 
