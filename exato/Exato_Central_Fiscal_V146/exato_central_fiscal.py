@@ -197,6 +197,9 @@ NFE_ACCENT = RED
 NFCE_ACCENT = RED
 CTE_ACCENT = RED
 CONFIG_LOCK = threading.RLock()
+PAGE_MIN_WIDTH = 1080   # largura mínima de uma página; abaixo disso a área central rola na horizontal
+RAIL_BELOW_WIDTH = 1260  # janelas mais estreitas usam o menu lateral compacto (só ícones)
+RAIL_WIDTH = 68
 
 _REPORTLAB_READY = False
 
@@ -313,6 +316,59 @@ class _ModernTreeview(ttk.Treeview):
 
 
 ttk.Treeview = _ModernTreeview
+
+
+class _FlowLayout:
+    """V146: linha de botões que quebra para a linha de baixo quando falta largura (padrão para qualquer tela)."""
+    def __init__(self, frame, items, align='left', hgap=8, vgap=6):
+        self.frame, self.items, self.align, self.hgap, self.vgap = frame, list(items), align, hgap, vgap
+        self._last = None
+        frame.pack_propagate(False)
+        frame.bind('<Configure>', lambda e: self.relayout(), add='+')
+        frame.after_idle(self.relayout)
+
+    def relayout(self):
+        width = self.frame.winfo_width()
+        if width <= 1:
+            width = 10 ** 6
+        sizes = []
+        for w in self.items:
+            try:
+                sizes.append((w, w.winfo_reqwidth(), w.winfo_reqheight()))
+            except Exception:
+                return
+        rows, row, used = [], [], 0
+        for w, rw, rh in sizes:
+            extra = rw + (self.hgap if row else 0)
+            if row and used + extra > width:
+                rows.append(row); row, used = [], 0; extra = rw
+            row.append((w, rw, rh)); used += extra
+        if row:
+            rows.append(row)
+        y = 0
+        for row in rows:
+            total = sum(rw for _, rw, _ in row) + self.hgap * (len(row) - 1)
+            x = max(width - total, 0) if self.align == 'right' and width < 10 ** 6 else 0
+            row_h = max(rh for _, _, rh in row)
+            for w, rw, rh in row:
+                w.place(x=x, y=y + (row_h - rh) // 2)
+                x += rw + self.hgap
+            y += row_h + self.vgap
+        height = max(y - self.vgap, 1)
+        key = (width, height, len(rows))
+        if key != self._last:
+            self._last = key
+            self.frame.configure(height=height)
+
+
+def make_flow(frame, reverse=False, align='left', hgap=8, vgap=6):
+    """Converte uma linha de widgets empacotados (pack) em uma linha que quebra automaticamente."""
+    items = list(frame.pack_slaves())
+    if reverse:
+        items.reverse()
+    for w in items:
+        w.pack_forget()
+    return _FlowLayout(frame, items, align=align, hgap=hgap, vgap=vgap)
 
 
 class InfoTip:
@@ -7759,7 +7815,7 @@ class App(tk.Tk):
         self.title(f"{APP_NAME} — {APP_VERSION}")
         self._set_window_identity()
         self.configure(bg=BG)
-        self.minsize(820, 500)
+        self.minsize(900, 520)
         self.geometry(self._initial_geometry())
         try:
             self.compact_ui = (self.winfo_screenheight() <= 800 or self.winfo_screenwidth() <= 1366)
@@ -7979,6 +8035,7 @@ class App(tk.Tk):
     def _build_body(self):
         shell=tk.Frame(self,bg=BG); shell.pack(fill='both',expand=True)
         self._sidebar_base_width=232
+        self._sidebar_labels=[]; self._sidebar_navs=[]; self._sidebar_nav_text={}; self._sidebar_density=''; self._sidebar_mode='full'
         self._sidebar_exatinho_width=282
         self.sidebar=tk.Frame(shell,bg=SIDEBAR_BG,width=self._sidebar_base_width); self.sidebar.pack(side='left',fill='y'); self.sidebar.pack_propagate(False)
         sidebar_brand=tk.Frame(self.sidebar,bg=SIDEBAR_BG); sidebar_brand.pack(fill='x',padx=18,pady=(12,4))
@@ -7986,7 +8043,11 @@ class App(tk.Tk):
             from PIL import Image,ImageTk
             logo_source=LOGO_PATH if LOGO_PATH.exists() else LOGO_MARK_PATH
             im=Image.open(logo_source).convert('RGBA'); im=self._logo_without_dark_box(im); im.thumbnail((176,50),Image.Resampling.LANCZOS)
-            self.sidebar_logo_img=ImageTk.PhotoImage(im); tk.Label(sidebar_brand,image=self.sidebar_logo_img,bg=SIDEBAR_BG,bd=0).pack(anchor='w')
+            self.sidebar_logo_img=ImageTk.PhotoImage(im); self.sidebar_logo_label=tk.Label(sidebar_brand,image=self.sidebar_logo_img,bg=SIDEBAR_BG,bd=0); self.sidebar_logo_label.pack(anchor='w')
+            try:
+                mark=Image.open(LOGO_MARK_PATH).convert('RGBA'); mark.thumbnail((38,38),Image.Resampling.LANCZOS); self.sidebar_mark_img=ImageTk.PhotoImage(mark)
+            except Exception:
+                self.sidebar_mark_img=None
         except Exception:
             tk.Label(sidebar_brand,text='EXATO',bg=SIDEBAR_BG,fg=WHITE,font=('Segoe UI Semibold',17),width=9,anchor='w').pack(anchor='w')
         self._sidebar_section('VISÃO GERAL')
@@ -8013,10 +8074,11 @@ class App(tk.Tk):
             self.nav_users.pack_forget()
         self.sidebar_footer=tk.Frame(self.sidebar,bg=SIDEBAR_BG); self.sidebar_footer.pack(side='bottom',fill='x',padx=12,pady=12)
         tk.Frame(self.sidebar_footer,bg='#2B3647',height=1).pack(fill='x',pady=(0,8))
-        self.ia_sidebar_dock=tk.Frame(self.sidebar_footer,bg=SIDEBAR_BG,bd=0,highlightthickness=0,height=66); self.ia_sidebar_dock.pack(fill='x'); self.ia_sidebar_dock.pack_propagate(False)
+        self.ia_sidebar_dock=tk.Frame(self.sidebar_footer,bg=SIDEBAR_BG,bd=0,highlightthickness=0,height=84); self.ia_sidebar_dock.pack(fill='x'); self.ia_sidebar_dock.pack_propagate(False)
         self._build_floating_ia()
+        self.sidebar.bind('<Configure>',self._sidebar_apply_density,add='+'); self.bind('<Configure>',lambda e:(self._sidebar_apply_density() if e.widget is self else None),add='+')
         self.workspace=tk.Frame(shell,bg=BG); self.workspace.pack(side='left',fill='both',expand=True)
-        self.workspace_canvas=tk.Canvas(self.workspace,bg=BG,highlightthickness=0,bd=0); self.workspace_scrollbar=ttk.Scrollbar(self.workspace,orient='vertical',command=self.workspace_canvas.yview); self.workspace_canvas.configure(yscrollcommand=self.workspace_scrollbar.set); self.workspace_scrollbar.pack(side='right',fill='y'); self.workspace_canvas.pack(side='left',fill='both',expand=True)
+        self.workspace_canvas=tk.Canvas(self.workspace,bg=BG,highlightthickness=0,bd=0); self.workspace_scrollbar=ttk.Scrollbar(self.workspace,orient='vertical',command=self.workspace_canvas.yview); self.workspace_canvas.configure(yscrollcommand=self.workspace_scrollbar.set); self.workspace_scrollbar.pack(side='right',fill='y'); self.workspace_canvas.pack(side='left',fill='both',expand=True); self.workspace_hscroll=ttk.Scrollbar(self.workspace,orient='horizontal',command=self.workspace_canvas.xview); self.workspace_canvas.configure(xscrollcommand=self.workspace_hscroll.set)
         self.page_host=tk.Frame(self.workspace_canvas,bg=BG); self._workspace_window=self.workspace_canvas.create_window((0,0),window=self.page_host,anchor='nw'); self.page_host.bind('<Configure>',self._on_workspace_host_configure); self.workspace_canvas.bind('<Configure>',self._on_workspace_canvas_configure); self.workspace_canvas.bind('<Enter>',self._on_workspace_enter); self.workspace_canvas.bind('<Leave>',self._on_workspace_leave); self._workspace_mousewheel_bound=False
         self.cert_frame=None; self._show_certificate_list()
 
@@ -8034,7 +8096,7 @@ class App(tk.Tk):
         self.ia_float_img.pack(side='left', anchor='s', padx=(0,4))
         self.ia_float_bubble = tk.Label(self.ia_float, text='', bg='#162033', fg='#F8FAFC',
                                         font=('Segoe UI', 9), justify='left',
-                                        wraplength=108, padx=6, pady=6, bd=1,
+                                        wraplength=116, padx=6, pady=5, bd=1,
                                         highlightbackground='#2B3647', highlightthickness=1,
                                         cursor='hand2')
         self.ia_float_bubble.pack(side='left', fill='x', expand=True, anchor='center')
@@ -8055,7 +8117,7 @@ class App(tk.Tk):
         self._exatinho_startup_context = None
         self._exatinho_session_started_at = time.monotonic()
         self._exatinho_session_counters = {'sync':0,'audit':0,'pending':0,'danfe':0}
-        self.ia_sidebar_interaction = tk.Frame(self.sidebar, bg='#162033', bd=0,
+        self.ia_sidebar_interaction = tk.Frame(self, bg='#162033', bd=0,
                                                highlightbackground='#2B3647', highlightthickness=1)
         # O pack antes do dock mantém o painel acima do personagem quando expandido.
         self.ia_sidebar_interaction.pack_forget()
@@ -9085,8 +9147,8 @@ class App(tk.Tk):
                 greeting = f'Olá, {first_name}! Eu sou o Exatinho. Acompanho o que acontece na Central e posso ajudar quando precisar.'
         else:
             greeting = self._exatinho_context_message()
-        panel_width=max(244, int(self.sidebar.winfo_width() or self._sidebar_exatinho_width))
-        content_wrap=max(208, panel_width-34)
+        panel_width=340
+        content_wrap=panel_width-34
         tk.Label(panel, text=greeting, bg='#162033', fg='#E7EEF5',
                  font=('Segoe UI', 10), justify='left', wraplength=content_wrap,
                  anchor='w').pack(fill='x', padx=10, pady=(0, 8))
@@ -9132,24 +9194,19 @@ class App(tk.Tk):
             small.pack(fill='x', padx=10, pady=(0, 9))
 
     def _exatinho_expand_sidebar(self):
-        if getattr(self,'_exatinho_sidebar_expanded',False):
-            return
-        try:
-            self.sidebar.configure(width=self._sidebar_exatinho_width)
-            self._exatinho_sidebar_expanded=True
-            self.update_idletasks()
-        except Exception:
-            pass
+        # V146: o painel do Exatinho é um cartão flutuante; o menu lateral mantém sempre a mesma largura.
+        return
 
     def _exatinho_restore_sidebar(self):
-        if not getattr(self,'_exatinho_sidebar_expanded',False):
-            return
-        try:
-            self.sidebar.configure(width=self._sidebar_base_width)
-            self._exatinho_sidebar_expanded=False
-            self.update_idletasks()
-        except Exception:
-            pass
+        return
+
+    def _exatinho_place_panel(self):
+        """Posiciona o cartão do Exatinho ao lado do menu, acima da barra de status, sem cobrir a navegação."""
+        panel = self.ia_sidebar_interaction
+        side = self._sidebar_base_width if self.sidebar_footer.winfo_ismapped() else RAIL_WIDTH
+        room = max(int(self.winfo_width() if self.winfo_width() > 200 else 1100) - side - 24, 240)
+        panel.place(x=side + 12, rely=1.0, y=-44, anchor='sw', width=min(340, room))
+        panel.lift()
 
     def _exatinho_open_panel(self, first=False):
         if not hasattr(self, 'ia_sidebar_interaction'):
@@ -9158,7 +9215,7 @@ class App(tk.Tk):
         self._exatinho_first_interaction = bool(first)
         self._exatinho_panel_render()
         try:
-            self.ia_sidebar_interaction.place(relx=0.02, rely=0.90, anchor='sw', relwidth=0.96)
+            self._exatinho_place_panel()
         except Exception:
             self.ia_sidebar_interaction.pack(fill='x', padx=0, pady=(0, 7))
         self._exatinho_panel_open = True
@@ -9471,17 +9528,34 @@ class App(tk.Tk):
         elif active=='history': self._ia_float_set_state('dica','Posso ajudar a interpretar o histórico fiscal.',2600)
         else: self._ia_float_set_state('repouso','O Exatinho está aqui para ajudar.',2200)
 
-    def _on_workspace_host_configure(self, event=None):
+    def _sync_workspace_layout(self):
+        """V146: a página sempre começa no topo e ocupa pelo menos a altura visível.
+
+        O Canvas do Tk centraliza a área rolável quando ela é menor que a janela; isso deixava
+        as telas curtas "boiando" no meio. Aqui a altura do conteúdo nunca é menor que a da janela.
+        """
         try:
-            self.workspace_canvas.configure(scrollregion=self.workspace_canvas.bbox('all'))
+            canvas = self.workspace_canvas
+            visible = max(canvas.winfo_width(), 1)
+            width = max(visible, PAGE_MIN_WIDTH)
+            height = max(canvas.winfo_height(), self.page_host.winfo_reqheight(), 1)
+            canvas.itemconfigure(self._workspace_window, width=width, height=height)
+            canvas.configure(scrollregion=(0, 0, width, height))
+            # Rolagem horizontal de segurança: só aparece se a janela for mais estreita que o mínimo da página.
+            need_h = width > visible + 1
+            if need_h and not self.workspace_hscroll.winfo_ismapped():
+                self.workspace_hscroll.pack(side='bottom', fill='x', before=canvas)
+            elif not need_h and self.workspace_hscroll.winfo_ismapped():
+                self.workspace_hscroll.pack_forget()
+                canvas.xview_moveto(0)
         except Exception:
             pass
 
+    def _on_workspace_host_configure(self, event=None):
+        self._sync_workspace_layout()
+
     def _on_workspace_canvas_configure(self, event):
-        try:
-            self.workspace_canvas.itemconfigure(self._workspace_window, width=event.width)
-        except Exception:
-            pass
+        self._sync_workspace_layout()
 
     def _on_workspace_mousewheel(self, event):
         try:
@@ -9499,9 +9573,73 @@ class App(tk.Tk):
     def _on_workspace_leave(self, event=None):
         pass
 
+    def _sidebar_nav_font(self, active=False):
+        if getattr(self, '_sidebar_mode', 'full') == 'rail':
+            return ("Segoe UI", 14)
+        return ("Segoe UI Semibold", 10) if active else ("Segoe UI", 10)
+
+    def _sidebar_apply_density(self, event=None):
+        """V146: padrão responsivo do menu lateral.
+
+        - largura da janela < RAIL_BELOW_WIDTH: menu compacto só com ícones (mais espaço para a página);
+        - altura baixa (notebooks): some o título dos grupos e os itens ficam mais juntos;
+        - altura muito baixa: o Exatinho do rodapé é ocultado. Nada é cortado.
+        """
+        try:
+            h = int(self.sidebar.winfo_height()); w = int(self.winfo_width())
+        except Exception:
+            return
+        if h <= 1 or w <= 1:
+            return
+        mode = 'rail' if w < RAIL_BELOW_WIDTH else 'full'
+        level = 'normal' if h >= 650 else ('compact' if h >= 540 else 'tight')
+        if (mode, level) == (getattr(self, '_sidebar_mode', 'full'), getattr(self, '_sidebar_density', '')) and getattr(self, '_sidebar_applied', False):
+            return
+        self._sidebar_applied = True
+        self._sidebar_mode, self._sidebar_density = mode, level
+        rail = mode == 'rail'
+        self._sidebar_base_width = RAIL_WIDTH if rail else 232
+        if not getattr(self, '_exatinho_sidebar_expanded', False):
+            self.sidebar.configure(width=self._sidebar_base_width)
+        # logo
+        logo = getattr(self, 'sidebar_logo_label', None)
+        if logo is not None:
+            if rail and getattr(self, 'sidebar_mark_img', None) is not None:
+                logo.config(image=self.sidebar_mark_img); logo.pack_configure(anchor='center')
+            else:
+                logo.config(image=self.sidebar_logo_img); logo.pack_configure(anchor='w')
+        # títulos dos grupos
+        for label, text in self._sidebar_labels:
+            if level == 'normal' and not rail:
+                label.config(text=text, font=('Segoe UI Semibold', 7)); label.pack_configure(pady=(8, 2))
+            else:
+                label.config(text='', font=('Segoe UI', 1)); label.pack_configure(pady=(4 if rail else (3 if level == 'compact' else 1), 0))
+        # itens
+        for btn in self._sidebar_navs:
+            full_text = self._sidebar_nav_text.get(btn, btn.cget('text'))
+            if rail:
+                btn.config(text=full_text.split()[0], anchor='center', padx=0, pady={'normal': 5, 'compact': 3, 'tight': 1}[level], font=("Segoe UI", 13 if level == 'tight' else 14))
+                btn.pack_configure(padx=8, pady=(1 if level != 'tight' else 0))
+            else:
+                btn.config(text=full_text, anchor='w', padx=14, pady=(4 if level != 'tight' else 2), font=("Segoe UI", 10))
+                btn.pack_configure(padx=12, pady=(1 if level != 'tight' else 0))
+        try:
+            self._set_active_nav(getattr(self, 'current_screen', ''))
+        except Exception:
+            pass
+        # rodapé com o Exatinho
+        try:
+            if level == 'tight' or rail:
+                self.sidebar_footer.pack_forget()
+            elif not self.sidebar_footer.winfo_ismapped():
+                self.sidebar_footer.pack(side='bottom', fill='x', padx=12, pady=12)
+        except Exception:
+            pass
+
     def _sidebar_section(self, text):
         label=tk.Label(self.sidebar,text=text,bg=SIDEBAR_BG,fg=SIDEBAR_MUTED,font=('Segoe UI Semibold',7),anchor='w')
         label.pack(fill='x',padx=22,pady=(8,2))
+        self._sidebar_labels.append((label,text))
         return label
 
     def _make_nav(self, text, command):
@@ -9509,6 +9647,7 @@ class App(tk.Tk):
                       bg=SIDEBAR_BG,fg=SIDEBAR_TEXT,activebackground=SIDEBAR_HOVER,activeforeground=WHITE,
                       font=("Segoe UI",10),padx=14,pady=4,cursor="hand2", highlightthickness=0)
         btn.pack(fill="x", padx=12, pady=1)
+        self._sidebar_navs.append(btn); self._sidebar_nav_text[btn]=text
         btn.bind('<Enter>',lambda e,b=btn:(b.config(bg=SIDEBAR_HOVER) if b.cget('bg')!=RED else None),add='+')
         btn.bind('<Leave>',lambda e,b=btn:(b.config(bg=SIDEBAR_BG) if b.cget('bg')!=RED else None),add='+')
         return btn
@@ -9528,7 +9667,7 @@ class App(tk.Tk):
         def reset_scroll():
             try:
                 self.workspace_canvas.update_idletasks()
-                self.workspace_canvas.configure(scrollregion=self.workspace_canvas.bbox("all"))
+                self._sync_workspace_layout()
                 self.workspace_canvas.yview_moveto(0)
             except Exception:
                 pass
@@ -9691,8 +9830,8 @@ class App(tk.Tk):
         buttons={"cert":getattr(self,"nav_cert",None),"sync":getattr(self,"nav_sync",None),"dashboard":getattr(self,"nav_dashboard",None),"companies":getattr(self,"nav_companies",None),"documents":getattr(self,"nav_documents",None),"reports":getattr(self,"nav_reports",None),"pending":getattr(self,"nav_pending",None),"history":getattr(self,"nav_history",None),"audit":getattr(self,"nav_audit",None),"users":getattr(self,"nav_users",None),"maintenance":getattr(self,"nav_maintenance",None)}
         for key,btn in buttons.items():
             if btn is None: continue
-            if key==active: btn.config(bg=RED,fg=WHITE,activebackground=RED_DARK,font=("Segoe UI Semibold",10))
-            else: btn.config(bg=SIDEBAR_BG,fg=SIDEBAR_TEXT,activebackground=SIDEBAR_HOVER,font=("Segoe UI",10))
+            if key==active: btn.config(bg=RED,fg=WHITE,activebackground=RED_DARK,font=self._sidebar_nav_font(True))
+            else: btn.config(bg=SIDEBAR_BG,fg=SIDEBAR_TEXT,activebackground=SIDEBAR_HOVER,font=self._sidebar_nav_font(False))
         try:
             names={"cert":"Certificado","sync":"Buscar XML","dashboard":"Início","companies":"Empresas","documents":"Documentos Fiscais","reports":"Relatórios","pending":"Pendências","history":"Histórico","audit":"Auditoria Fiscal","users":"Usuários","maintenance":"Manutenção"}
             if hasattr(self,'header_crumb'): self.header_crumb.config(text=names.get(active,''))
@@ -9945,18 +10084,20 @@ class App(tk.Tk):
         # Actions: identical hierarchy to Option 2
         actions=tk.Frame(outer,bg=BG); actions.pack(fill='x',padx=22,pady=(0,5))
         self.use_saved_var=tk.BooleanVar(value=True); self.hom_var=tk.BooleanVar(value=False); self.auto_sync_var=tk.BooleanVar(value=bool(self.config_data.get('auto_sync_enabled',False))); self.generate_fiscal_pdf_var=tk.BooleanVar(value=bool(self.config_data.get('generate_fiscal_pdf_auto',True)))
+        btn_row=tk.Frame(outer,bg=BG); btn_row.pack(fill='x',padx=22,pady=(0,5))
         auto_wrap=tk.Frame(actions,bg=BG); auto_wrap.pack(side='left')
         self.auto_checkbutton=ttk.Checkbutton(auto_wrap,text='Atualização automática (empresa ativa)',variable=self.auto_sync_var,command=self._toggle_auto_sync,state='disabled'); self.auto_checkbutton.pack(side='left')
         add_info(auto_wrap,'Atualização automática','Atualiza periodicamente somente a empresa ativa desta tela. Para percorrer todas as empresas cadastradas, use BUSCA AUTOMÁTICA.')
         self.pdf_auto_checkbutton=ttk.Checkbutton(auto_wrap,text='Gerar PDFs fiscais automaticamente',variable=self.generate_fiscal_pdf_var,command=self._toggle_auto_fiscal_pdf,state='disabled'); self.pdf_auto_checkbutton.pack(side='left',padx=(12,0))
         add_info(auto_wrap,'PDFs fiscais automáticos','Ao salvar os XMLs, gera em segundo plano a representação fiscal de cada documento, salva ao lado do XML. Desative para preservar somente os XMLs.')
         def action_with_help(parent,text,style,command,title,help_text,state='disabled'):
-            wrap=tk.Frame(parent,bg=BG); wrap.pack(side='right',padx=(6,0)); btn=ttk.Button(wrap,text=text,style=style,command=command,state=state); btn.pack(side='left'); add_info(wrap,title,help_text); return btn
+            wrap=tk.Frame(btn_row,bg=BG); wrap.pack(side='right',padx=(6,0)); btn=ttk.Button(wrap,text=text,style=style,command=command,state=state); btn.pack(side='left'); add_info(wrap,title,help_text); return btn
         self.pdf_btn=action_with_help(actions,'Relatório','Secondary.TButton',self._generate_pdf_report,'Gerar relatório','Gera um relatório fiscal em PDF com os documentos encontrados no período selecionado.')
         self.audit_btn=action_with_help(actions,'Auditar','Secondary.TButton',self._show_audit_from_documents,'Auditar documentos','Confere automaticamente os documentos da empresa com o SAT no período selecionado.')
         self.save_btn=action_with_help(actions,'SALVAR XMLs + PDFs','Secondary.TButton',self._save_last_documents,'Salvar XMLs e PDFs ao lado dos documentos','Salva os XMLs em Entrada/Saída → tipo documental e coloca o PDF fiscal correspondente na mesma pasta e ao lado do XML.')
         self.sync_all_btn=action_with_help(actions,'BUSCAR XML','Primary.TButton',self._run_sync_all,'Buscar XML','Consulta e captura novos XMLs no período selecionado.')
         self.multi_company_btn=action_with_help(actions,'BUSCA AUTOMÁTICA','Blue.TButton',self._open_multi_company_search_dialog,'Busca automática multiempresas','Percorre sequencialmente todas as empresas cadastradas, consulta os documentos e, opcionalmente, salva os XMLs em uma pasta raiz de clientes.')
+        make_flow(btn_row,reverse=True,align='right')
         self.cancel_sync_btn=ttk.Button(actions,text='Cancelar busca',style='Secondary.TButton',command=self._cancel_sync,state='disabled'); self.cancel_sync_btn.pack_forget()
         if os.environ.get('EXATO_CF_DEV')=='1': ttk.Checkbutton(actions,text='Ambiente de testes',variable=self.hom_var).pack(side='left',padx=(14,0))
 
@@ -12426,6 +12567,7 @@ class App(tk.Tk):
         self.doc_clear_btn=ttk.Button(action_top,text='LIMPAR SELEÇÃO',style='Secondary.TButton',command=self._clear_document_selection); self.doc_clear_btn.pack(side='right')
         self.doc_select_all_btn=ttk.Button(action_top,text='SELECIONAR TODOS',style='Secondary.TButton',command=self._select_all_documents); self.doc_select_all_btn.pack(side='right',padx=(0,6))
         action_bottom=tk.Frame(actions,bg=BG); action_bottom.pack(fill='x',pady=(5,0))
+        self._doc_action_bottom=action_bottom
         self.doc_folder_btn=ttk.Button(action_bottom,text='ABRIR PASTA',style='CompactSecondary.TButton',command=self._open_selected_document_folder,state='disabled'); self.doc_folder_btn.pack(side='right')
         self.doc_copy_btn=ttk.Button(action_bottom,text='COPIAR CHAVE(S)',style='CompactSecondary.TButton',command=self._copy_selected_document_keys,state='disabled'); self.doc_copy_btn.pack(side='right',padx=(0,5))
         self.doc_xml_btn=ttk.Button(action_bottom,text='ABRIR XML',style='CompactSecondary.TButton',command=self._open_selected_document_xml,state='disabled'); self.doc_xml_btn.pack(side='right',padx=(0,5))
@@ -12433,6 +12575,7 @@ class App(tk.Tk):
         self.doc_save_xml_btn=ttk.Button(action_bottom,text='SALVAR XMLs',style='CompactPrimary.TButton',command=self._save_selected_document_xmls,state='disabled'); self.doc_save_xml_btn.pack(side='right',padx=(0,5))
         self.doc_save_new_xml_btn=ttk.Button(action_bottom,text='SALVAR XMLs NOVOS',style='CompactPrimary.TButton',command=self._save_new_document_xmls,state='disabled'); self.doc_save_new_xml_btn.pack(side='right',padx=(0,5))
         self.doc_rep_btn=ttk.Button(action_bottom,text='VER/GERAR REPRESENTAÇÃO',style='CompactPrimary.TButton',command=self._open_selected_document_representation,state='disabled'); self.doc_rep_btn.pack(side='right',padx=(0,5))
+        make_flow(action_bottom,reverse=True,align='right',hgap=5)
         self.doc_count_label=tk.Label(self.documents_frame,text='',bg=BG,fg=MUTED,font=('Segoe UI Semibold',9)); self.doc_count_label.pack(anchor='e',padx=16,pady=(0,1))
         self.doc_archive_status_label=tk.Label(self.documents_frame,text='ARQUIVO FISCAL LOCAL: —',bg=BG,fg=MUTED,font=('Segoe UI Semibold',8),anchor='e'); self.doc_archive_status_label.pack(anchor='e',padx=16,pady=(0,4))
         wrap=tk.Frame(self.documents_frame,bg=WHITE,highlightbackground=BORDER,highlightthickness=1); wrap.pack(fill='both',expand=True,padx=16)
@@ -13086,6 +13229,7 @@ class App(tk.Tk):
         ttk.Button(actions,text='HISTÓRICO DE AUDITORIAS',style='Secondary.TButton',command=self._audit_show_history).pack(side='left',padx=(8,0))
         ttk.Button(actions,text='NOVA AUDITORIA',style='Secondary.TButton',command=self._audit_new).pack(side='left',padx=(8,0))
         self.audit_cancel_btn=ttk.Button(actions,text='CANCELAR',style='Secondary.TButton',command=self._cancel_sat_audit,state='disabled'); self.audit_cancel_btn.pack(side='right')
+        make_flow(actions)
         self.audit_progress_label=tk.Label(self.audit_frame,text='Escolha NF-e ou NFC-e e importe o Excel oficial do SAT para começar.',bg=BG,fg=MUTED,font=('Segoe UI',8),anchor='w'); self.audit_progress_label.pack(fill='x',padx=22,pady=(0,6))
 
         # KPIs
@@ -14006,6 +14150,7 @@ class App(tk.Tk):
         ttk.Button(action2,text='SINCRONIZAR CENTRAL AGORA',style='Secondary.TButton',command=self._central_sync_tick).pack(side='left',padx=(8,0))
         ttk.Button(action2,text='TESTAR HUMOR DO EXATINHO',style='Secondary.TButton',command=self._exatinho_demo_humor).pack(side='left',padx=(8,0))
         ttk.Button(action2,text='VERIFICAR VERSÕES',style='Blue.TButton',command=self._refresh_maintenance).pack(side='left',padx=(8,0))
+        make_flow(action1); make_flow(action2)
         chealth=tk.Frame(self.maintenance_frame,bg=WHITE,highlightbackground=BORDER,highlightthickness=1); chealth.pack(fill='x',padx=22,pady=(0,10))
         chh=tk.Frame(chealth,bg=WHITE); chh.pack(fill='x',padx=14,pady=(10,4)); tk.Label(chh,text='CENTRAL COMPARTILHADA',bg=WHITE,fg=TEXT,font=('Segoe UI Semibold',11)).pack(side='left'); tk.Label(chh,text='Conectividade, sincronização, inicialização e backup.',bg=WHITE,fg=MUTED,font=('Segoe UI',8)).pack(side='right')
         chg=tk.Frame(chealth,bg=WHITE); chg.pack(fill='x',padx=10,pady=(0,10)); self.central_health_labels={}

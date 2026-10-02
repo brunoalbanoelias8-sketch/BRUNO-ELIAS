@@ -16,6 +16,12 @@ TEMA VISUAL (V146)
 - Estilos ttk em App._configure_styles. Topo em _build_header, menu em _build_body/_make_nav/_set_active_nav.
 - Ambiente de teste de interface: Python 3.12 + python3-tk + pillow + reportlab, com xvfb-run. EXATO_DATA_DIR aponta para uma pasta temporária.
 
+PADRÃO RESPONSIVO (V146)
+- Constantes: PAGE_MIN_WIDTH, RAIL_BELOW_WIDTH, RAIL_WIDTH. Menu: App._sidebar_apply_density. Página: App._sync_workspace_layout.
+- Para qualquer linha nova de botões use make_flow(frame) depois de criar os botões com pack (reverse=True, align='right' para grupos à direita).
+- O painel do Exatinho é flutuante (App._exatinho_place_panel); nunca redimensione o menu para abri-lo.
+- Teste de tamanhos: SIZE=1366x650 / 1100x600 / 1000x560 no ambiente xvfb (ver testes/test_v146_theme_ui.py).
+
 PENDÊNCIAS (herdadas da V145 + visual)
 1. Revisar no Windows fontes, DPI e telas pequenas.
 2. Botões: a capitalização é ajustada em tempo de execução (_sentence_case_button_text); ao editar textos novos, já escreva em capitalização normal.

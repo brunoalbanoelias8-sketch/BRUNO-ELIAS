@@ -50,6 +50,25 @@ try:
     # A seleção continua habilitando o botão Continuar e preenchendo o rodapé.
     app.tree.selection_set(app.tree.get_children()[1]); app.update()
     assert str(app.continue_btn['state'])=='normal' and app.selection_label.cget('text')=='BETA SERVICOS LTDA'
+    # Layout responsivo: menu completo em 1366 px, menu de ícones em janelas estreitas e botões que quebram de linha.
+    app.geometry('1366x650+0+0'); app._show_webservice_test(); app.update(); app.update()
+    assert app.sidebar.winfo_width()==232 and app.sidebar_footer.winfo_ismapped()
+    app.geometry('1100x600+0+0'); app.update(); app.update()
+    assert app.sidebar.winfo_width()==m.RAIL_WIDTH and not app.sidebar_footer.winfo_ismapped()
+    assert app.nav_documents.cget('text')=='▤'
+    app._show_webservice_test(); app.update(); app.update()
+    # Todos os botões da linha de ações ficam dentro da área visível da página (nenhum fica escondido).
+    canvas_right=app.workspace_canvas.winfo_rootx()+app.workspace_canvas.winfo_width()
+    for b in (app.sync_all_btn,app.multi_company_btn,app.save_btn,app.audit_btn,app.pdf_btn):
+        assert b.winfo_rootx()>=app.workspace_canvas.winfo_rootx() and b.winfo_rootx()+b.winfo_width()<=canvas_right,(b.cget('text'),b.winfo_rootx())
+    # A página sempre começa no topo (sem centralização vertical do Canvas).
+    app._show_companies(); app.update(); app.update()
+    assert app.page_host.winfo_y()==0
+    app.geometry('1366x650+0+0'); app.update(); app.update()
+    assert app.sidebar.winfo_width()==232 and app.nav_documents.cget('text').endswith('Documentos Fiscais')
+    # Exatinho: o painel flutua e não muda a largura do menu.
+    app._exatinho_open_panel(first=True); app.update()
+    assert app.sidebar.winfo_width()==232 and app.ia_sidebar_interaction.winfo_x()>=232
 finally:
     app.destroy(); shutil.rmtree(os.environ['EXATO_DATA_DIR'],ignore_errors=True)
 print('V146 theme UI: OK')

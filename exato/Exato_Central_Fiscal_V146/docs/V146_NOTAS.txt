@@ -33,6 +33,13 @@ TESTES
 - test_v144_companies_ui (com a versão ajustada), test_v140_central_sync e test_v141_backup_health continuam OK.
 - Testes antigos que checam a versão (V143, V144) e o cadastro com aprovação (V135/V137) já falhavam antes da V146, por mudarem a regra no projeto.
 
+LAYOUT RESPONSIVO (NOTEBOOKS)
+16. Exatinho: o painel passou a ser um cartão flutuante ao lado do menu. O menu lateral não muda mais de largura e os itens não ficam cobertos. O quadro do mascote no rodapé foi aumentado para não cortar a figura nem o balão.
+17. Áreas de página: o conteúdo sempre começa no topo e ocupa a altura visível (o Canvas do Tk centralizava páginas curtas, criando um vazio no alto).
+18. Menu lateral adaptável: largura da janela < 1260 px usa menu compacto só com ícones; altura baixa esconde os títulos dos grupos e aproxima os itens; altura muito baixa esconde o Exatinho do rodapé.
+19. Largura mínima de página (1080 px) com rolagem horizontal de segurança: se a janela for mais estreita, a página rola em vez de cortar.
+20. Linhas de botões que quebram de linha automaticamente (make_flow): Buscar XML (os botões "Buscar XML" e "Busca automática" podiam ficar escondidos), Documentos Fiscais, Auditoria e Manutenção.
+
 NÃO ALTERADO DE PROPÓSITO
 - Resultado da Busca Automática ("Aguardando" mesmo quando tudo correu bem): a causa está na interpretação de deferred_actor, ligada aos núcleos fiscais protegidos (choose_nfe_actor, mark_nfe_sync_cycle, sync_documents_automatically). Precisa de autorização e de teste com a SEFAZ real.
 - Acesso automático ao SAT e auditoria de nota cancelada: dependem de teste no Windows com certificado / motor protegido.
