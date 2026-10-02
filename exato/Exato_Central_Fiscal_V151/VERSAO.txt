@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V151
+
+NFS-e com a mesma lógica da NF-e: PDF de cada nota (DANFSe), XML salvo junto com o PDF e um PDF consolidado por pasta, indicação de nota já exportada e alerta de nota cancelada depois de exportada. Busca de todas as empresas de uma vez, resumo mensal em PDF e Excel, lista em Excel, cartões de NFS-e no Início e Modo técnico. Nenhuma regra fiscal existente foi alterada.

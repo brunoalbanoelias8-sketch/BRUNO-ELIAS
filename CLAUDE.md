@@ -7,5 +7,7 @@
 - Suíte de testes: `testes/SUITE_ATUAL.txt` + `testes/run_suite.py` (GitHub Actions roda a cada envio, `.github/workflows/tests.yml`). `test_versao_consistente.py` confere a regra de versão. Ao criar uma versão nova, renomear os `test_vNNN_*` e atualizar a lista.
 - Testes de interface: Python 3.12 + `python3-tk` + `pillow` + `reportlab` com `xvfb-run`; `EXATO_DATA_DIR` aponta para uma pasta temporária. O programa exige Python 3.12+.
 - NFS-e (V149+): `exato_nfse.py` (núcleo) e `exato_nfse_portal.py` (portal por usuário/senha, em calibração; endereços em `PORTAL`). Gov.br/ADN/portal são bloqueados no ambiente de desenvolvimento: tudo foi testado só com simulação; ajustar com o retorno real do usuário (exato.log e Logs/nfse_portal).
+- NFS-e segue a lógica da NF-e (V151): XML + PDF por nota (`exato_nfse_pdf.py`) + consolidado por pasta, registro de exportação em `document_exports`, alerta de cancelada já exportada; planilhas por `exato_xlsx.py`. Em NFS-e usar Prestados/Tomados na tela e nas pastas (internamente Saída/Entrada). Ferramentas só para o suporte ficam no Modo técnico (Manutenção).
+- O usuário não quer linguagem de programação visível (nomes de erro, siglas técnicas): mensagens sempre em português claro (`friendly_message`, `log_exception`).
 - O usuário usa notebook (≈1366×768): toda tela nova deve funcionar em 1366×650 e em janelas estreitas (usar `make_flow` para linhas de botões; ver `docs/CONTINUIDADE_PROJETO_*`).
 - Responder em português.
