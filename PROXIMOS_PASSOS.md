@@ -20,6 +20,8 @@ Versão atual entregue: **V151** (`exato/Exato_Central_Fiscal_V151/`). Regras do
 
 2. **NFS-e, relatório mensal de verdade**: hoje o "consolidado por pasta" (`NFS-e_<tipo>_<aaaa>-<mm>_consolidado.pdf`) é só um PDF com uma página de DANFSe por nota (sem soma), a "relação" (`generate_nfse_list_pdf`) é uma lista simples do filtro, e o "Resumo mensal" só traz totais por mês. Proposta: relatório mensal em lote = um PDF por mês e por tipo (Prestados/Tomados) com todas as notas do mês em lista + totais (quantidade, valor, canceladas separadas), gerado também ao salvar os XMLs (na pasta do mês) e por botão para o período escolhido (um arquivo por mês ou um só com seção por mês). **Formato confirmado pelo usuário** (um PDF por mês e tipo, lista de todas as notas + totais; automático ao salvar XMLs; botão para o período).
 
+3. **NFS-e por usuário e senha: opção de salvar a senha vinculada à empresa.** Muda a decisão antiga ("não guardar senha"), agora por pedido do usuário. Proposta: opcional (caixa "Lembrar a senha desta empresa"), nunca no log nem em texto puro; guardar criptografada com a proteção do Windows (DPAPI, só abre no mesmo usuário do Windows, via PowerShell/ctypes), vinculada ao CNPJ da empresa, em tabela/arquivo dentro de `Dados` (sem banco novo); botões "Esquecer senha salva" e indicação "senha salva" na empresa; preencher o campo automaticamente ao escolher a empresa; base para a busca em lote por usuário/senha. Não vai no backup/exportação em claro. Confirmar com o usuário: salvar só CPF/CNPJ de acesso + senha.
+
 ## Ideias ainda não feitas
 - NFS-e no relatório e na auditoria (hoje separadas de propósito, por segurança).
 - Busca em lote por usuário e senha (clientes sem certificado).
