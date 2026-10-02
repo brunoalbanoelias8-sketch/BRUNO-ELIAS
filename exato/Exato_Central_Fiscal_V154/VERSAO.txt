@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V154
+
+Captcha do portal sem pular nota, relatório mensal sempre completo (novo layout) e PDF da NFS-e calibrado com XML real. Nenhuma regra fiscal existente foi alterada.
