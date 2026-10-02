@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V152
+
+Feedbacks da NFS-e: relatório mensal em lote, senha do portal salva por empresa (protegida), acesso sem janela, download corrigido, "Buscar e salvar tudo" e lista sem espremer. Nenhuma regra fiscal existente foi alterada.
