@@ -13,7 +13,10 @@ ALTERAÇÕES (SOMENTE INTERFACE)
 6. Tela Certificado: busca (nome ou CPF/CNPJ), filtros Todos / A3 token / Vencendo, contagem exibida, "Vence em N dia(s)" em âmbar para certificados com 60 dias ou menos, duplo clique para continuar e rodapé com o certificado selecionado.
    A lógica (refresh_certificates, _on_select, confirm_selection, restauração por thumbprint) não mudou.
 7. Títulos de página padronizados em 20 pt.
-8. Correção: a barra de status passou a ser criada antes do corpo, evitando que ela fosse espremida em janelas baixas.
+8. Botões escritos em MAIÚSCULAS passam a usar capitalização normal (ex.: "Salvar XMLs novos"), preservando XML, NF-e, NFC-e, CT-e, CNPJ, SAT, PDF, DANFE e Excel. A conversão é feita em tempo de execução (_ModernButton), sem alterar a lógica dos botões.
+9. Cabeçalhos de tabela alinhados com o conteúdo de cada coluna (_ModernTreeview).
+10. Documentos Fiscais: linha de ações com botões compactos (CompactPrimary/CompactSecondary), sem cortar textos em telas de 1366 px; texto de ajuda quebra em duas linhas.
+11. Correção: a barra de status passou a ser criada antes do corpo, evitando que ela fosse espremida em janelas baixas.
 
 PROTEÇÃO
 - 13/13 núcleos fiscais protegidos SAME (AST/SHA-256) em relação à V145.

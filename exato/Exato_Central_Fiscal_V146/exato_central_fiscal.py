@@ -230,6 +230,84 @@ def _ensure_reportlab():
         ) from exc
 
 
+_BUTTON_KEEP_UPPER = {'XML': 'XML', 'XMLS': 'XMLs', 'NF-E': 'NF-e', 'NFC-E': 'NFC-e', 'CT-E': 'CT-e', 'CNPJ': 'CNPJ',
+                      'CPF': 'CPF', 'SAT': 'SAT', 'PDF': 'PDF', 'DANFE': 'DANFE', 'IA': 'IA', 'EXCEL': 'Excel',
+                      'EXATINHO': 'Exatinho', 'EXATO': 'Exato', '×': '×'}
+
+
+def _sentence_case_button_text(text):
+    """V146: botões escritos em MAIÚSCULAS passam a usar capitalização normal (ex.: 'SALVAR XMLs NOVOS' -> 'Salvar XMLs novos')."""
+    raw = str(text)
+    letters = [c for c in raw.replace('XMLs', 'XML').replace('NFC-e', 'NFC-E').replace('NF-e', 'NF-E').replace('CT-e', 'CT-E') if c.isalpha()]
+    if len(letters) < 3 or any(c.islower() for c in letters):
+        return raw
+    out = []
+    first_done = False
+    for token in re.split(r'(\s+)', raw):
+        if not token.strip():
+            out.append(token); continue
+        core = token.strip('()[]{}.,;:!?/')
+        key = core.upper()
+        if key in _BUTTON_KEEP_UPPER:
+            new = token.replace(core, _BUTTON_KEEP_UPPER[key]) if core else token
+        else:
+            new = token.lower()
+        if not first_done and any(c.isalpha() for c in new):
+            for i, c in enumerate(new):
+                if c.isalpha():
+                    new = new[:i] + c.upper() + new[i + 1:]; break
+            first_done = True
+        out.append(new)
+    return ''.join(out)
+
+
+class _ModernButton(ttk.Button):
+    def __init__(self, master=None, **kw):
+        if 'text' in kw:
+            kw['text'] = _sentence_case_button_text(kw['text'])
+        super().__init__(master, **kw)
+
+    def configure(self, cnf=None, **kw):
+        if isinstance(cnf, dict) and 'text' in cnf:
+            cnf = dict(cnf, text=_sentence_case_button_text(cnf['text']))
+        if 'text' in kw:
+            kw['text'] = _sentence_case_button_text(kw['text'])
+        return super().configure(cnf, **kw)
+    config = configure
+
+    def __setitem__(self, key, value):
+        if key == 'text':
+            value = _sentence_case_button_text(value)
+        super().__setitem__(key, value)
+
+
+ttk.Button = _ModernButton
+
+
+class _ModernTreeview(ttk.Treeview):
+    """V146: cabeçalhos alinhados com o conteúdo da coluna."""
+    def heading(self, column, option=None, **kw):
+        if option is None and 'text' in kw:
+            if 'anchor' not in kw:
+                try:
+                    kw['anchor'] = super().column(column, 'anchor')
+                except Exception:
+                    pass
+        return super().heading(column, option, **kw) if option is not None else super().heading(column, **kw)
+
+    def column(self, column, option=None, **kw):
+        result = super().column(column, option, **kw)
+        if option is None and kw.get('anchor'):
+            try:
+                super().heading(column, anchor=kw['anchor'])
+            except Exception:
+                pass
+        return result
+
+
+ttk.Treeview = _ModernTreeview
+
+
 class InfoTip:
     """Contextual help bubble with safe screen-aware positioning."""
     def __init__(self, widget, title, text):
@@ -7841,6 +7919,15 @@ class App(tk.Tk):
         style.map("TEntry", bordercolor=[("focus", "#CBD5E1")])
         style.configure("TCheckbutton", background=BG, foreground=MUTED, font=("Segoe UI",9))
         style.map("TCheckbutton", background=[("active", BG)])
+        style.configure("CompactPrimary.TButton", background=RED, foreground=WHITE, padding=(11, 7),
+                        font=("Segoe UI Semibold", 9), borderwidth=0, relief="flat", focuscolor=RED)
+        style.map("CompactPrimary.TButton", background=[("active", RED_DARK), ("disabled", "#E2E8F0")],
+                  foreground=[("disabled", "#94A3B8")])
+        style.configure("CompactSecondary.TButton", background=WHITE, foreground=TEXT, padding=(10, 6),
+                        font=("Segoe UI Semibold", 9), borderwidth=1, relief="flat", bordercolor=BORDER,
+                        lightcolor=WHITE, darkcolor=WHITE, focuscolor=WHITE)
+        style.map("CompactSecondary.TButton", background=[("active", "#F1F5F9"), ("disabled", "#F8FAFC")],
+                  foreground=[("disabled", "#94A3B8")], bordercolor=[("active", "#CBD5E1")])
         style.configure("Vertical.TScrollbar", background="#D5DCE6", troughcolor=BG, bordercolor=BG,
                         lightcolor="#D5DCE6", darkcolor="#D5DCE6", arrowcolor=BG, relief="flat", width=10)
         style.map("Vertical.TScrollbar", background=[("active", "#B8C2D1")])
@@ -12328,17 +12415,17 @@ class App(tk.Tk):
             lab=tk.Label(box,text=value,bg=WHITE,fg=accent,font=('Segoe UI Semibold',13)); lab.pack(anchor='w',padx=9,pady=(1,6)); self.doc_summary_labels[key]=lab
         actions=tk.Frame(self.documents_frame,bg=BG); actions.pack(fill='x',padx=20,pady=(0,7))
         action_top=tk.Frame(actions,bg=BG); action_top.pack(fill='x')
-        self.doc_action_hint=tk.Label(action_top,text='Selecione um ou mais documentos para ver as ações disponíveis.',bg=BG,fg=MUTED,font=('Segoe UI',8)); self.doc_action_hint.pack(side='left')
+        self.doc_action_hint=tk.Label(action_top,text='Selecione um ou mais documentos para ver as ações disponíveis.',bg=BG,fg=MUTED,font=('Segoe UI',8),wraplength=640,justify='left',anchor='w'); self.doc_action_hint.pack(side='left')
         self.doc_clear_btn=ttk.Button(action_top,text='LIMPAR SELEÇÃO',style='Secondary.TButton',command=self._clear_document_selection); self.doc_clear_btn.pack(side='right')
         self.doc_select_all_btn=ttk.Button(action_top,text='SELECIONAR TODOS',style='Secondary.TButton',command=self._select_all_documents); self.doc_select_all_btn.pack(side='right',padx=(0,6))
         action_bottom=tk.Frame(actions,bg=BG); action_bottom.pack(fill='x',pady=(5,0))
-        self.doc_folder_btn=ttk.Button(action_bottom,text='ABRIR PASTA',style='Secondary.TButton',command=self._open_selected_document_folder,state='disabled'); self.doc_folder_btn.pack(side='right')
-        self.doc_copy_btn=ttk.Button(action_bottom,text='COPIAR CHAVE(S)',style='Secondary.TButton',command=self._copy_selected_document_keys,state='disabled'); self.doc_copy_btn.pack(side='right',padx=(0,6))
-        self.doc_xml_btn=ttk.Button(action_bottom,text='ABRIR XML',style='Secondary.TButton',command=self._open_selected_document_xml,state='disabled'); self.doc_xml_btn.pack(side='right',padx=(0,6))
-        self.doc_batch_rep_btn=ttk.Button(action_bottom,text='GERAR REPRESENTAÇÕES',style='Primary.TButton',command=self._generate_selected_representations_batch,state='disabled'); self.doc_batch_rep_btn.pack(side='right',padx=(0,6))
-        self.doc_save_xml_btn=ttk.Button(action_bottom,text='SALVAR XMLs',style='Primary.TButton',command=self._save_selected_document_xmls,state='disabled'); self.doc_save_xml_btn.pack(side='right',padx=(0,6))
-        self.doc_save_new_xml_btn=ttk.Button(action_bottom,text='SALVAR XMLs NOVOS',style='Blue.TButton',command=self._save_new_document_xmls,state='disabled'); self.doc_save_new_xml_btn.pack(side='right',padx=(0,6))
-        self.doc_rep_btn=ttk.Button(action_bottom,text='VER/GERAR REPRESENTAÇÃO',style='Primary.TButton',command=self._open_selected_document_representation,state='disabled'); self.doc_rep_btn.pack(side='right',padx=(0,6))
+        self.doc_folder_btn=ttk.Button(action_bottom,text='ABRIR PASTA',style='CompactSecondary.TButton',command=self._open_selected_document_folder,state='disabled'); self.doc_folder_btn.pack(side='right')
+        self.doc_copy_btn=ttk.Button(action_bottom,text='COPIAR CHAVE(S)',style='CompactSecondary.TButton',command=self._copy_selected_document_keys,state='disabled'); self.doc_copy_btn.pack(side='right',padx=(0,5))
+        self.doc_xml_btn=ttk.Button(action_bottom,text='ABRIR XML',style='CompactSecondary.TButton',command=self._open_selected_document_xml,state='disabled'); self.doc_xml_btn.pack(side='right',padx=(0,5))
+        self.doc_batch_rep_btn=ttk.Button(action_bottom,text='GERAR REPRESENTAÇÕES',style='CompactPrimary.TButton',command=self._generate_selected_representations_batch,state='disabled'); self.doc_batch_rep_btn.pack(side='right',padx=(0,5))
+        self.doc_save_xml_btn=ttk.Button(action_bottom,text='SALVAR XMLs',style='CompactPrimary.TButton',command=self._save_selected_document_xmls,state='disabled'); self.doc_save_xml_btn.pack(side='right',padx=(0,5))
+        self.doc_save_new_xml_btn=ttk.Button(action_bottom,text='SALVAR XMLs NOVOS',style='CompactPrimary.TButton',command=self._save_new_document_xmls,state='disabled'); self.doc_save_new_xml_btn.pack(side='right',padx=(0,5))
+        self.doc_rep_btn=ttk.Button(action_bottom,text='VER/GERAR REPRESENTAÇÃO',style='CompactPrimary.TButton',command=self._open_selected_document_representation,state='disabled'); self.doc_rep_btn.pack(side='right',padx=(0,5))
         self.doc_count_label=tk.Label(self.documents_frame,text='',bg=BG,fg=MUTED,font=('Segoe UI Semibold',9)); self.doc_count_label.pack(anchor='e',padx=16,pady=(0,1))
         self.doc_archive_status_label=tk.Label(self.documents_frame,text='ARQUIVO FISCAL LOCAL: —',bg=BG,fg=MUTED,font=('Segoe UI Semibold',8),anchor='e'); self.doc_archive_status_label.pack(anchor='e',padx=16,pady=(0,4))
         wrap=tk.Frame(self.documents_frame,bg=WHITE,highlightbackground=BORDER,highlightthickness=1); wrap.pack(fill='both',expand=True,padx=16)

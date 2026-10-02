@@ -27,6 +27,13 @@ try:
                      ('_show_maintenance','Manutenção'),('_show_certificate_list','Certificado')]:
         getattr(app,fn)(); app.update_idletasks(); app.update()
         assert app.header_crumb.cget('text')==title,(fn,app.header_crumb.cget('text'))
+    # Botões em maiúsculas passam a usar capitalização normal; siglas e documentos fiscais são preservados.
+    assert m._sentence_case_button_text('SALVAR XMLs NOVOS')=='Salvar XMLs novos'
+    assert m._sentence_case_button_text('DIAGNÓSTICO NF-e')=='Diagnóstico NF-e'
+    assert m._sentence_case_button_text('IMPORTAR EMPRESAS (EXCEL)')=='Importar empresas (Excel)'
+    assert m._sentence_case_button_text('Auditar')=='Auditar'
+    app._show_documents(); app.update()
+    assert app.doc_rep_btn.cget('text')=='Ver/gerar representação'
     # Tela Certificado: busca e filtros.
     app._finish_refresh(list(certs),''); app.update()
     assert len(app.tree.get_children())==3

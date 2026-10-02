@@ -18,6 +18,6 @@ TEMA VISUAL (V146)
 
 PENDÊNCIAS (herdadas da V145 + visual)
 1. Revisar no Windows fontes, DPI e telas pequenas.
-2. Botões ainda em MAIÚSCULAS em várias telas (texto no código); trocar por capitalização normal onde fizer sentido.
-3. Polir telas internas (Documentos, Auditoria, Manutenção) com o mesmo padrão de cartões e etiquetas da tela Certificado.
+2. Botões: a capitalização é ajustada em tempo de execução (_sentence_case_button_text); ao editar textos novos, já escreva em capitalização normal.
+3. Telas internas (Auditoria, Manutenção, Buscar XML) já usam o tema; falta apenas etiquetas coloridas de situação onde hoje há texto simples.
 4. Pendências da V145: acesso automático ao SAT, resultado "Concluído" da busca, Exato IA (_natural_number_key), Central /auth/import_users, Python 3.12 nos .bat, fluidez na troca de abas.
