@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V149
+
+Nova aba NFS-e (Emissor Nacional): busca por certificado digital (API do ADN) e por usuário e senha (portal, em calibração), importação de XML/ZIP, armazenamento no Arquivo Fiscal Local como tipo NFS-e. Nenhuma regra fiscal existente foi alterada.

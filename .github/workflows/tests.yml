@@ -17,7 +17,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-tk xvfb
-          pip install pillow reportlab
+          pip install pillow reportlab playwright
+          playwright install --with-deps chromium
       - name: Rodar a suíte da versão mais recente
         run: |
           VERSAO_DIR=$(ls -d exato/Exato_Central_Fiscal_V* | sort -V | tail -1)
