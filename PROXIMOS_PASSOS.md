@@ -15,6 +15,9 @@ Versão atual entregue: **V151** (`exato/Exato_Central_Fiscal_V151/`). Regras do
 4. Decidir: em Documentos Fiscais, mostrar **Prestado/Tomado** na coluna Movimentação das NFS-e (hoje Entrada/Saída)?
 5. Conferir no Windows fontes/escala da tela (o ambiente de desenvolvimento é Linux).
 
+## Feedbacks do usuário para a V152 (registrados, ainda não feitos)
+1. **NFS-e, lista de notas esmagada** (notebook ≈1366×768): com a busca concluída, os cartões (Notas no período / Prestados / Tomados / Canceladas) e a faixa de resultado ocupam quase toda a altura e a tabela fica com ~1 linha visível. Reorganizar para a lista ter altura útil (cartões compactos, seções recolhíveis, tabela com altura mínima e rolagem da página).
+
 ## Ideias ainda não feitas
 - NFS-e no relatório e na auditoria (hoje separadas de propósito, por segurança).
 - Busca em lote por usuário e senha (clientes sem certificado).
