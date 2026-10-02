@@ -1,0 +1,26 @@
+name: Testes do Exato Central Fiscal
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Dependências (Tk, tela virtual, Pillow, ReportLab)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk xvfb
+          pip install pillow reportlab
+      - name: Rodar a suíte da versão mais recente
+        run: |
+          VERSAO_DIR=$(ls -d exato/Exato_Central_Fiscal_V* | sort -V | tail -1)
+          echo "Testando $VERSAO_DIR"
+          cd "$VERSAO_DIR"
+          xvfb-run -a python testes/run_suite.py

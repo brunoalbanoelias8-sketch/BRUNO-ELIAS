@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V148
+
+Evolução da V147 com produtividade e engenharia: atalhos Ctrl+1 a 9 e F1, avisos que somem sozinhos, registro de erros (Logs/exato.log), telas Histórico e Documentos mais rápidas, e testes automáticos no GitHub. Nenhuma regra fiscal foi alterada.
