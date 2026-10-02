@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V153
+
+Portal por usuário e senha: novo jeito de baixar os XMLs (aba, clique, janela visível de reserva) e diagnóstico mais detalhado. Nenhuma regra fiscal existente foi alterada.
