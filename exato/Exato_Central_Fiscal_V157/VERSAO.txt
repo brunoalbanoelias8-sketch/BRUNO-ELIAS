@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V157
+
+Visual novo (Exato Design): cartões e botões arredondados, ícones modernos, tema claro/escuro, gráfico no Início e login redesenhado. Nenhuma regra fiscal existente foi alterada.
