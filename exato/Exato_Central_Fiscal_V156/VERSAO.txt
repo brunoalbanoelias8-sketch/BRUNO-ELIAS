@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V156
+
+Pasta organizada (programa, ferramentas, ajuda), logo da Exato na barra de tarefas, Exatinho mais inteligente (memória da conversa) e piloto automático opcional. Nenhuma regra fiscal existente foi alterada.
