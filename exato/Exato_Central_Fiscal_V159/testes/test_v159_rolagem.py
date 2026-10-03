@@ -49,8 +49,17 @@ try:
     r.on_wheel(Ev(cb,-120)); assert cb.get()=='a'
     # diálogo: não rola a página de trás
     dlg=tk.Toplevel(app); dlg.geometry('300x200+50+50'); lab=tk.Label(dlg,text='x'); lab.pack(); pump(.3)
+    t0=time.time()
+    while (r._target is not None or r._job) and time.time()-t0<5: pump(.05)
     y_before=page.yview()[0]; r.on_wheel(Ev(lab,-120)); pump(.5); assert page.yview()[0]==y_before
     dlg.destroy()
+    # desenho lento: sem animação, pula direto (evita rastro de imagem no Windows)
+    page.yview_moveto(0); pump(.2); r.stop(); r._slow=False
+    orig=page.update_idletasks
+    page.update_idletasks=lambda: (time.sleep(.06), orig())[1]
+    r.on_wheel(Ev(tall,-120)); pump(.3)
+    assert r._slow and r._target is None and r._job is None and page.yview()[0]>0.0
+    page.update_idletasks=orig; r._slow=False; page.yview_moveto(0)
     # trocar de tela volta ao topo e cancela a animação
     r.on_wheel(Ev(tall,-120)); app._show_history(); pump(.8); assert page.yview()[0]==0.0 and r._target is None
 finally:

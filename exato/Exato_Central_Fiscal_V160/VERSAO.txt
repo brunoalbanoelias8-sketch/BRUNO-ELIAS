@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V160
+
+Correção do "rastro" de imagem ao rolar telas pesadas. Nenhuma regra fiscal existente foi alterada.
