@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V159
+
+Rolagem mais lisa (mouse e touchpad), sem tremedeira ao redimensionar. Nenhuma regra fiscal existente foi alterada.

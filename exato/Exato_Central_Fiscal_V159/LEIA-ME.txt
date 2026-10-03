@@ -1,0 +1,38 @@
+EXATO CENTRAL FISCAL
+Versão: V159
+
+COMO ABRIR
+- Dê dois cliques em INICIAR.bat (não aparece mais a janela preta).
+- Para ter o logo da Exato na Área de Trabalho e na barra de tarefas: abra a pasta ferramentas e execute CRIAR_ATALHO.bat; depois clique com o botão direito no atalho e escolha "Fixar na barra de tarefas".
+- Se o programa não abrir: ferramentas\EXECUTAR_COM_DIAGNOSTICO.bat mostra a mensagem do problema (envie para o suporte).
+
+COMO A PASTA É ORGANIZADA
+- INICIAR.bat, LEIA-ME.txt, VERSAO.txt
+- programa\  : o programa e as imagens (não mexa)
+- ferramentas\ : CRIAR_ATALHO, INSTALAR_COMPONENTE_NFSE (busca de NFS-e por usuário e senha) e a abertura com diagnóstico
+- ajuda\ : como instalar o Exato e como configurar a Central
+- Os seus dados NÃO ficam nesta pasta: %LOCALAPPDATA%\Exato\Central Fiscal\Dados (trocar de versão não perde nada).
+
+NOVIDADES DA V159 (ROLAGEM MAIS LISA)
+- A roda do mouse e o touchpad rolam sempre o que está sob o ponteiro: tabelas e listas primeiro, depois a página, sem "pular" no fim da tabela.
+- Touchpad do notebook: movimentos pequenos agora rolam a página (antes eram ignorados).
+- Rolagem da página com movimento suave; janelas de diálogo não mexem mais na página de trás; listas de escolha não trocam o valor ao rolar por cima.
+- Redimensionar a janela fica sem tremedeira; a linha sob o mouse acompanha a tabela ao rolar.
+
+NOVIDADES DA V158 (VISUAL, RODADA 2)
+- Situação das notas em selos coloridos (Autorizada, Exportada, Cancelada...) nas telas Documentos, NFS-e e Histórico.
+- Caixas de seleção e botões de opção redondinhos, no mesmo estilo (claro e escuro).
+
+NOVIDADES DA V157 (VISUAL NOVO E TEMA ESCURO)
+- Visual totalmente renovado: cartões de cantos arredondados com sombra suave, botões e campos arredondados, ícones modernos no menu, topo com busca em pílula e avatar, indicadores com ícones e gráfico dos últimos 6 meses no Início, janela de login redesenhada.
+- Tema escuro: clique na lua (topo, à direita) para alternar entre claro e escuro. O Exato lembra a escolha. PDFs e planilhas continuam com as cores normais.
+- Linha da tabela destacada ao passar o mouse; avisos e telas vazias mais bonitos.
+
+NOVIDADES DA V156
+- Logo da Exato na barra de tarefas (o programa se identifica como Exato; atalho com o logo).
+- Pasta organizada: sem arquivos soltos, sem __pycache__.
+- Exatinho mais inteligente (Ctrl+J): lembra o assunto da conversa ("e em outubro?", "e as tomadas?"), entende erros de digitação, "últimos 3 meses", "trimestre", vários pedidos numa frase; responde maiores clientes e fornecedores, maiores notas, comparação entre meses e ranking de empresas; explica como calculou e sugere o próximo passo.
+- Piloto automático (opcional, desligado): todo dia busca as NFS-e das empresas com certificado, salva os XMLs novos, gera o relatório do mês anterior e mostra o que fez. Abra em Exatinho > Piloto automático. Só roda com o Exato aberto.
+
+NOVIDADES DA V155 E ANTERIORES
+- Consulte docs/ e ajuda/ no repositório; resumo: Exatinho conversando (V155), captcha sem pular nota e relatório mensal completo (V154), portal por usuário e senha com download corrigido (V153), senha salva, "Buscar e salvar tudo" (V152).
