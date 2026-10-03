@@ -17,3 +17,4 @@
 - O usuário usa notebook (≈1366×768): toda tela nova deve funcionar em 1366×650 e em janelas estreitas (usar `make_flow` para linhas de botões; ver `docs/CONTINUIDADE_PROJETO_*`).
 - **Diretriz do usuário: automatizar ao máximo.** A Central Exato deve exigir o mínimo de cliques e de trabalho manual (lembrar escolhas, preencher sozinho, ações encadeadas, tentar de novo sozinho, avisar só quando houver decisão). Pense nisso em toda tela nova.
 - Responder em português.
+- Visual (V158): situação em selos coloridos nas tabelas (`_tree_pill_mode`/`_tree_pill_insert`, `exato_ui.pill_row`; o texto da situação continua nos `values`); caixas/opções por `exato_ui.skin_toggles`.
