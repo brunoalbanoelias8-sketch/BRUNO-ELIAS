@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V163
+
+Tela Buscar XML: aviso "CNPJ confirmado" aparece uma vez só. Nenhuma regra fiscal existente foi alterada.
