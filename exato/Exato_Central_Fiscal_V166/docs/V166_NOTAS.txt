@@ -1,0 +1,21 @@
+V166 — TROCA DE TELAS RÁPIDA (FLUIDEZ)
+
+PEDIDO DO USUÁRIO
+- Ao andar pelas abas do menu o programa fica muito lento e às vezes trava.
+
+DIAGNÓSTICO (medido com 60 empresas e 30 mil documentos, no ambiente de teste)
+1. O Exatinho redesenhava a imagem a cada quadro (25/s) com 3 redimensionamentos de alta qualidade: ~38 ms por quadro = quase 100% do tempo do programa, o tempo todo. Tudo o mais disputava o que sobrava. (Medição: 38,6 ms -> 3,3 ms por quadro.)
+2. As listas (Documentos, NFS-e) liam o XML completo de todas as notas só para mostrar a tabela (dezenas de MB), recalculavam nome/tipo de todas as NFS-e e inseriam até 5.000 linhas de uma vez.
+3. Consultas sem índice (ordenação por data, contagens por empresa).
+
+O QUE FOI FEITO
+- Cache das imagens do Exatinho; listas sem XML (LazyXmlRow); preenchimento em fatias com cancelamento; NFS-e sem parse de todas as notas; estatísticas do arquivo local calculadas logo depois do primeiro desenho; 3 índices novos.
+- Resultado (mesmos dados): Documentos 655 -> 76 ms para abrir, NFS-e 863 -> 158 ms, Empresas 203 -> 82 ms, Buscar XML 304 -> 61 ms, Início 126 -> 21 ms (a chamada que bloqueia a tela; no Windows os tempos absolutos serão maiores, mas a proporção é a mesma).
+
+REVISÃO FEITA NESTA VERSÃO (regra do usuário)
+- Perfil de tempo de todas as telas, antes e depois; teste de roda em todas as telas (0 erros); suíte completa; teste novo de fluidez (fatias, cancelamento por novo filtro, "selecionar todos", troca de tela no meio do preenchimento, XML só quando usado, plano de consulta usa o índice, custo do quadro do Exatinho).
+- Cuidado: nenhuma regra fiscal ou núcleo protegido alterado; os XMLs continuam sendo lidos do banco exatamente quando um PDF/exportação/auditoria os usa.
+
+A CONFERIR NO WINDOWS
+- Andar pelas abas (principalmente Documentos, NFS-e e Empresas) com muitos dados: a tela deve aparecer na hora e a lista encher em instantes.
+- Se ainda houver travada, mandar o exato.log e dizer qual aba.

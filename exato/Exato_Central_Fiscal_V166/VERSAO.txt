@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V166
+
+Troca de telas rápida: Exatinho leve, listas em fatias, sem carregar XMLs nas listas e índices novos no banco. Nenhuma regra fiscal existente foi alterada.
