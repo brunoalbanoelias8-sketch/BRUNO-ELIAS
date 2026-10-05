@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V161
+
+Correção do aviso de erro ao abrir a tela NFS-e no Windows (cor padrão do sistema nos cartões). Nenhuma regra fiscal existente foi alterada.
