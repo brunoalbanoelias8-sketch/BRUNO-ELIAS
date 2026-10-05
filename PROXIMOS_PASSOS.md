@@ -66,6 +66,9 @@ Plano: 1) cópia automática de cada XML novo (NF-e, NFC-e, CT-e, NFS-e) para `<
 
 ## Regra permanente (pedido do usuário): toda versão passa por revisão de bugs e fluidez antes de ser entregue (ver CLAUDE.md, "Revisão a cada versão").
 
+## Feedback pós-V166 (a gerar na V167 quando o usuário pedir)
+1. **Tela Repositório: filtro na tabela "por empresa e mês".** O usuário quer filtrar só o que AINDA NÃO foi para o servidor. Plano: linha de filtros acima da tabela (mesmo estilo das outras telas): (a) situação: Todas / Só o que falta copiar / Só o que já está no servidor; (b) busca por empresa (nome ou CNPJ); (c) mês (opcional). O contador "Na fila" vira atalho (clicar filtra pelo que falta). Guardar a escolha. Filtrar em memória sobre `por_empresa_mes` (já traz documentos e copiados) sem nova consulta; mostrar "N de M linhas". Teste: tabela com linhas completas e pendentes.
+
 ## Ideias ainda não feitas
 - NFS-e no relatório e na auditoria (hoje separadas de propósito, por segurança).
 - Busca em lote por usuário e senha (clientes sem certificado).
