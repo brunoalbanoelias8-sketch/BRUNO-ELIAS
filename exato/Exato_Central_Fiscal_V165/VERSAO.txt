@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V165
+
+Atualização automática de todas as empresas a cada 4 horas (aviso resumido), pergunta ao cadastrar empresa nova e repositório mais rápido com vários computadores. Nenhuma regra fiscal existente foi alterada.
