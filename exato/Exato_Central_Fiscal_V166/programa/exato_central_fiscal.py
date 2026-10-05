@@ -792,7 +792,7 @@ def restore_local_archive_backup(backup_path):
             try: (Path(str(DB_PATH)+suffix)).unlink(missing_ok=True)
             except Exception: pass
         APP_DATA_DIR.mkdir(parents=True,exist_ok=True)
-        os.replace(temp_db,DB_PATH)
+        os.replace(temp_db,DB_PATH); _INIT_OK.clear()
         init_database()
         return True
     finally:
@@ -1126,8 +1126,19 @@ def load_config():
 def save_config(data):
     with CONFIG_LOCK:
         temp = CONFIG_PATH.with_suffix(".tmp")
-        temp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-        temp.replace(CONFIG_PATH)
+        texto = json.dumps(data, ensure_ascii=False, indent=2)
+        ultimo = None
+        for tentativa in range(8):        # V166: no Windows o antivírus/indexador pode segurar o arquivo por instantes ("Acesso negado")
+            try:
+                temp.write_text(texto, encoding="utf-8")
+                temp.replace(CONFIG_PATH)
+                return
+            except PermissionError as exc:
+                ultimo = exc; time.sleep(0.05 * (tentativa + 1))
+        try:                              # último recurso: grava direto (menos seguro, mas não perde a configuração)
+            CONFIG_PATH.write_text(texto, encoding="utf-8"); return
+        except Exception:
+            raise ultimo
 
 
 def extract_document_id(text):
@@ -1910,7 +1921,9 @@ def db_auth_ensure_bootstrap_admin():
     conn=_auth_connect()
     now=datetime.now().isoformat(timespec='seconds')
     conn.execute("INSERT OR IGNORE INTO users(name,email,password_hash,password_salt,password_iterations,role,status,must_set_password,created_at,updated_at,last_login_at) VALUES(?,?,?,?,?,?,?,?,?,?,NULL)",('Bruno Elias',AUTH_BOOTSTRAP_EMAIL,'','',AUTH_PASSWORD_ITERATIONS,'admin','active',1,now,now))
-    conn.execute("UPDATE users SET name='Bruno Elias',role='admin',status='active',updated_at=? WHERE email=? COLLATE NOCASE",(now,AUTH_BOOTSTRAP_EMAIL))
+    _ok=conn.execute("SELECT 1 FROM users WHERE email=? COLLATE NOCASE AND name='Bruno Elias' AND role='admin' AND status='active'",(AUTH_BOOTSTRAP_EMAIL,)).fetchone()
+    if not _ok:
+        conn.execute("UPDATE users SET name='Bruno Elias',role='admin',status='active',updated_at=? WHERE email=? COLLATE NOCASE",(now,AUTH_BOOTSTRAP_EMAIL))
     conn.commit(); conn.close()
 
 
@@ -2136,13 +2149,27 @@ def _auth_is_admin(user):
     return bool(user and str(user.get('role') or '')=='admin' and str(user.get('status') or 'active')=='active')
 
 
-def init_database():
+_INIT_OK = {}
+
+
+def init_database(force=False):
+    """V166: a preparação completa do banco (tabelas, índices, contas) roda UMA vez por abertura do programa. Antes rodava em toda consulta e,
+    a cada vez, gravava nas contas e no estado da Central: com outras linhas de trabalho gravando (busca, repositório) isso causava
+    "database is locked" e deixava as telas lentas."""
+    key = (str(DB_PATH), str(AUTH_DB_PATH))
+    if not force and _INIT_OK.get(key) and DB_PATH.exists() and AUTH_DB_PATH.exists():
+        return
+    _init_database_full()
+    _INIT_OK[key] = True
+
+
+def _init_database_full():
     """Create the local fiscal database used as durable document index/storage."""
     conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=NORMAL")
     conn.execute("PRAGMA temp_store=MEMORY")
-    conn.execute("PRAGMA busy_timeout=5000")
+    conn.execute("PRAGMA busy_timeout=30000")
     conn.execute("""CREATE TABLE IF NOT EXISTS companies (
         cnpj TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -2254,7 +2281,8 @@ def init_database():
     conn.execute("CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)")
     # V139: approval workflow removed. Any legacy pending account is promoted to active
     # so upgrades never strand an existing user behind the retired approval step.
-    conn.execute("UPDATE users SET status='active' WHERE status='pending'")
+    if conn.execute("SELECT 1 FROM users WHERE status='pending' LIMIT 1").fetchone():
+        conn.execute("UPDATE users SET status='active' WHERE status='pending'")
     conn.execute("""CREATE TABLE IF NOT EXISTS activity_log (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
@@ -2301,7 +2329,9 @@ def init_database():
     )""")
     try:
         device_id=central_client.get_settings()['device_id']
-        conn.execute("INSERT INTO central_sync_state(id,device_id) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET device_id=excluded.device_id",(device_id,))
+        _atual=conn.execute("SELECT device_id FROM central_sync_state WHERE id=1").fetchone()
+        if not _atual or _atual[0]!=device_id:
+            conn.execute("INSERT INTO central_sync_state(id,device_id) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET device_id=excluded.device_id",(device_id,))
     except Exception:
         pass
     conn.commit(); conn.close()

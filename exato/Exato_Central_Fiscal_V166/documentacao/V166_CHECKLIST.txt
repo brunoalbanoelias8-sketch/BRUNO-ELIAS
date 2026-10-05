@@ -75,3 +75,4 @@ V166 — CHECKLIST
 [x] Revisão: fuzz de roda em todas as telas, captura 1366x650
 [x] Fluidez: Exatinho leve, listas em fatias, XML sob demanda, índices (test_v166_fluidez)
 [x] Perfil de tempo antes/depois de todas as telas
+[x] Banco livre durante a cópia do repositório; init_database sem gravar; save_config com nova tentativa (test_v166_banco_livre)

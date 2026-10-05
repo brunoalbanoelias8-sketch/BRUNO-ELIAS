@@ -27,3 +27,4 @@ test_v166_repositorio.py
 test_v166_repositorio_ui.py
 test_v166_rodada_automatica.py
 test_v166_fluidez.py
+test_v166_banco_livre.py

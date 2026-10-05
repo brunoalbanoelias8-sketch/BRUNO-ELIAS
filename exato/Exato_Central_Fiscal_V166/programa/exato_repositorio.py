@@ -13,7 +13,7 @@ Regras de segurança:
 - sem Tkinter: tudo roda em segundo plano e pode ser testado sozinho.
 """
 from __future__ import annotations
-import hashlib, os, random, re, shutil, socket, sqlite3, tempfile, threading, zipfile
+import hashlib, os, random, re, shutil, socket, sqlite3, tempfile, threading, time, zipfile
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -162,6 +162,27 @@ def _pasta_repo(base):
     return Path(str(base)) / SUBPASTA
 
 
+_SQL_ERRO = ("INSERT INTO repositorio_copias(doc_id,erro,ultima_tentativa,tentativas) VALUES(?,?,?,1) "
+             "ON CONFLICT(doc_id) DO UPDATE SET erro=excluded.erro,ultima_tentativa=excluded.ultima_tentativa,tentativas=tentativas+1")
+_SQL_OK = ("INSERT INTO repositorio_copias(doc_id,caminho,sha256,copiado_em,ultima_tentativa,erro,conflito,tentativas) VALUES(?,?,?,?,?,'',?,1) "
+           "ON CONFLICT(doc_id) DO UPDATE SET caminho=excluded.caminho,sha256=excluded.sha256,copiado_em=excluded.copiado_em,ultima_tentativa=excluded.ultima_tentativa,erro='',conflito=excluded.conflito,removido=0")
+
+
+def _gravar(conn, fila):
+    """Grava de uma vez (em milissegundos) o que já foi copiado. O banco NUNCA fica travado durante a cópia de arquivos pela rede: antes a
+    transação ficava aberta por minutos e as outras telas/buscas davam "database is locked" (V166)."""
+    if not fila: return
+    for tentativa in range(6):
+        try:
+            for sql, params in fila: conn.execute(sql, params)
+            conn.commit(); fila.clear(); return
+        except sqlite3.OperationalError:
+            try: conn.rollback()
+            except Exception: pass
+            time.sleep(0.4 * (tentativa + 1))
+    fila.clear()          # não conseguiu gravar agora: esses documentos continuam na fila e são refeitos na próxima rodada
+
+
 def pendentes(db_path):
     """Quantos documentos do banco ainda não foram copiados."""
     conn = sqlite3.connect(db_path, timeout=30)
@@ -199,14 +220,16 @@ def copiar_pendentes(db_path, base, cancelar=None, progresso=None, lote=300, max
                    ORDER BY d.doc_id LIMIT ?""", (limite_tempo, lote)).fetchall()
             if not linhas: break
             agora = datetime.now().isoformat(timespec='seconds')
+            fila = []; ultimo_flush = time.monotonic()
             for linha in linhas:
+                if fila and (len(fila) >= 25 or time.monotonic() - ultimo_flush > 2.0):
+                    _gravar(conn, fila); ultimo_flush = time.monotonic()
                 if cancelar and cancelar():
                     res['motivo'] = 'cancelado'; break
                 xml = bytes(linha['xml'] or b'')
                 doc_id = linha['doc_id']
                 if not xml:
-                    conn.execute("INSERT INTO repositorio_copias(doc_id,erro,ultima_tentativa,tentativas) VALUES(?,?,?,1) ON CONFLICT(doc_id) DO UPDATE SET erro=excluded.erro,ultima_tentativa=excluded.ultima_tentativa,tentativas=tentativas+1",
-                                 (doc_id, 'documento sem XML', agora))
+                    fila.append((_SQL_ERRO, (doc_id, 'documento sem XML', agora)))
                     res['erros'] += 1; feitos += 1; continue
                 try:
                     partes = _partes(linha, empresas.pasta(linha['cnpj'], linha['empresa']))
@@ -219,18 +242,15 @@ def copiar_pendentes(db_path, base, cancelar=None, progresso=None, lote=300, max
                         estado, rel = copiar_arquivo(pasta_repo, partes, xml)
                         if estado == 'novo': listagens[pasta_doc][partes[-1]] = len(xml)
                 except Exception as exc:       # rede caiu, sem permissão, disco cheio...
-                    conn.execute("INSERT INTO repositorio_copias(doc_id,erro,ultima_tentativa,tentativas) VALUES(?,?,?,1) ON CONFLICT(doc_id) DO UPDATE SET erro=excluded.erro,ultima_tentativa=excluded.ultima_tentativa,tentativas=tentativas+1",
-                                 (doc_id, str(exc)[:200], agora))
+                    fila.append((_SQL_ERRO, (doc_id, str(exc)[:200], agora)))
                     res['erros'] += 1; falhas_seguidas += 1; feitos += 1
                     if falhas_seguidas >= 3:
-                        res.update(ok=False, motivo='falha'); conn.commit(); res['restantes'] = pendentes(db_path); return res
+                        res.update(ok=False, motivo='falha'); _gravar(conn, fila); res['restantes'] = pendentes(db_path); return res
                     continue
                 falhas_seguidas = 0
-                conn.execute("INSERT INTO repositorio_copias(doc_id,caminho,sha256,copiado_em,ultima_tentativa,erro,conflito,tentativas) VALUES(?,?,?,?,?,'',?,1) "
-                             "ON CONFLICT(doc_id) DO UPDATE SET caminho=excluded.caminho,sha256=excluded.sha256,copiado_em=excluded.copiado_em,ultima_tentativa=excluded.ultima_tentativa,erro='',conflito=excluded.conflito,removido=0",
-                             (doc_id, rel, _sha(xml), agora, agora, 1 if estado == 'diferente' else 0))
+                fila.append((_SQL_OK, (doc_id, rel, _sha(xml), agora, agora, 1 if estado == 'diferente' else 0)))
                 res[{'novo': 'novos', 'existe': 'existentes', 'diferente': 'diferentes'}[estado]] += 1; feitos += 1
-            conn.commit()
+            _gravar(conn, fila)
             res['restantes'] = pendentes(db_path)
             if progresso:
                 try: progresso(dict(res))
@@ -326,17 +346,18 @@ def verificar(db_path, base, amostra=200):
         linhas = conn.execute("SELECT doc_id,caminho,sha256 FROM repositorio_copias WHERE copiado_em IS NOT NULL AND COALESCE(removido,0)=0 AND caminho<>''").fetchall()
         if len(linhas) > amostra:
             linhas = random.sample(linhas, amostra)
+        voltam = []          # só grava no banco DEPOIS de ler a rede (nada de transação aberta durante o acesso ao servidor)
         for doc_id, caminho, sha in linhas:
             destino = Path(str(base)).joinpath(*caminho.split('/'))
             try:
                 if not os.path.exists(_longo(destino)):
                     problemas.append(f'Arquivo sumiu do servidor: {caminho}')
-                    conn.execute("UPDATE repositorio_copias SET copiado_em=NULL, erro='arquivo sumiu', ultima_tentativa=NULL WHERE doc_id=?", (doc_id,))   # volta para a fila
+                    voltam.append((doc_id,))      # volta para a fila
                 elif _sha(_ler(destino)) != sha:
                     problemas.append(f'Arquivo foi alterado no servidor: {caminho}')
             except Exception as exc:
                 problemas.append(f'Não consegui conferir {caminho}: {str(exc)[:80]}')
-        conn.commit()
+        _gravar(conn, [("UPDATE repositorio_copias SET copiado_em=NULL, erro='arquivo sumiu', ultima_tentativa=NULL WHERE doc_id=?", v) for v in voltam])
     finally:
         conn.close()
     return problemas
@@ -382,14 +403,15 @@ def apagar_vencidos(db_path, base, meses=MESES_PADRAO):
     conn = sqlite3.connect(db_path, timeout=30)
     try:
         preparar_banco(conn)
+        marcas = []
         for emp, ano, mes in info['pastas']:
             shutil.rmtree(_longo(pasta_repo / emp / ano / mes), ignore_errors=True)
-            conn.execute("UPDATE repositorio_copias SET removido=1 WHERE caminho LIKE ?", (f'{SUBPASTA}/{emp}/{ano}/{mes}/%',))
+            marcas.append(("UPDATE repositorio_copias SET removido=1 WHERE caminho LIKE ?", (f'{SUBPASTA}/{emp}/{ano}/{mes}/%',)))
             try: os.rmdir(_longo(pasta_repo / emp / ano))
             except OSError: pass
             try: os.rmdir(_longo(pasta_repo / emp))
             except OSError: pass
-        conn.commit()
+        _gravar(conn, marcas)
     finally:
         conn.close()
     return info

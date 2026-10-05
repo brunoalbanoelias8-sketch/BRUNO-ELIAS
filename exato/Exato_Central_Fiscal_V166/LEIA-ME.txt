@@ -13,7 +13,8 @@ COMO A PASTA É ORGANIZADA
 - ajuda\ : como instalar o Exato e como configurar a Central
 - Os seus dados NÃO ficam nesta pasta: %LOCALAPPDATA%\Exato\Central Fiscal\Dados (trocar de versão não perde nada).
 
-NOVIDADES DA V166 (TROCA DE TELAS MUITO MAIS RÁPIDA)
+NOVIDADES DA V166 (TROCA DE TELAS MUITO MAIS RÁPIDA E CORREÇÃO DOS ERROS DE "BANCO TRAVADO")
+- Corrigidos os avisos "Algo não saiu como esperado" (banco de dados ocupado) que apareciam enquanto o Repositório copiava arquivos para o servidor, e o "Acesso negado" ao gravar a configuração: o banco não fica mais travado durante a cópia pela rede e a configuração tenta de novo sozinha.
 - O Exatinho gastava quase todo o tempo do programa (redesenhava a imagem dele 25 vezes por segundo, sempre do zero). Agora cada imagem é preparada uma vez só: o programa inteiro fica bem mais leve, inclusive parado.
 - Documentos, NFS-e e Empresas abrem muito mais rápido: as listas não carregam mais o conteúdo dos XMLs (só quando você exporta ou abre uma nota) e entram na tela em fatias, então navegar pelas abas não trava mais, mesmo com muitos documentos.
 - Contagens e ordenação do banco mais rápidas (novos índices; nenhum dado muda).
