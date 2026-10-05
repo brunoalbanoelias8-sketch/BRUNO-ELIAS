@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V167
+
+Nome correto das empresas (nunca de fornecedor), pasta do repositório que acompanha o nome certo e filtros na tela Repositório. Nenhuma regra fiscal existente foi alterada.
