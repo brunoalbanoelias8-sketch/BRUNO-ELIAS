@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V162
+
+Correção: certificado mostrado igual no topo e na tela Buscar XML. Nenhuma regra fiscal existente foi alterada.
