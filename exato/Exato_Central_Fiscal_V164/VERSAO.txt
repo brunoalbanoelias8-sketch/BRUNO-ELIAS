@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V164
+
+Repositório de XML no servidor do escritório (cópia automática, fila, cópia diária do banco, prazo de guarda e restauração). Nenhuma regra fiscal existente foi alterada.

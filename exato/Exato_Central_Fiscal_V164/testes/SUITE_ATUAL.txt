@@ -1,0 +1,27 @@
+# Testes que valem para a versão atual (rodam no GitHub a cada envio e com run_suite.py).
+test_versao_consistente.py
+test_v164_theme_ui.py
+test_v164_productivity.py
+test_v164_central_import_role.py
+test_v164_nfse_core.py
+test_v164_nfse_storage.py
+test_v164_nfse_ui.py
+test_v164_nfse_portal.py
+test_v140_central_sync.py
+test_v141_backup_health.py
+test_v142_export_cancel.py
+test_v143_company_status.py
+test_v144_companies_ui.py
+test_v164_feedback.py
+test_v164_features.py
+test_v164_relatorio_e_automacao.py
+test_v164_nfse_real_xml.py
+test_v164_assistente.py
+test_v164_conversa_ui.py
+test_v164_design.py
+test_v164_piloto.py
+test_v164_rolagem.py
+test_v164_cores_do_sistema.py
+test_v164_certificado_unico.py
+test_v164_repositorio.py
+test_v164_repositorio_ui.py

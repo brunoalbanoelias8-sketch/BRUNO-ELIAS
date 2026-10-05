@@ -19,3 +19,4 @@
 - **Diretriz do usuário: automatizar ao máximo.** A Central Exato deve exigir o mínimo de cliques e de trabalho manual (lembrar escolhas, preencher sozinho, ações encadeadas, tentar de novo sozinho, avisar só quando houver decisão). Pense nisso em toda tela nova.
 - Responder em português.
 - Visual (V158): situação em selos coloridos nas tabelas (`_tree_pill_mode`/`_tree_pill_insert`, `exato_ui.pill_row`; o texto da situação continua nos `values`); caixas/opções por `exato_ui.skin_toggles`.
+- Repositório de XML (V164): `exato_repositorio.py` (sem Tkinter) + `App._repo_*` + tela Repositório. Todo documento do banco é copiado como arquivo para `<pasta do servidor>\Repositório\<CNPJ> - <Empresa>\<Ano>\<Mês>\<Tipo>\...` (pasta padrão `PASTA_PADRAO`, do escritório); fila em `repositorio_copias`; nunca sobrescrever, nunca apagar sem confirmação; linhas de trabalho não chamam Tk (usar `_repo_post`).
