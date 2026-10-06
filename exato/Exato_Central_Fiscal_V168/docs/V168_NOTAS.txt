@@ -1,0 +1,21 @@
+V168 — ZIP PARA A DOMÍNIO, ENVIAR BOX-E, ABERTURA SEM TRAVAR
+
+PEDIDOS DO USUÁRIO
+1. ZIP dos XMLs na pasta dos clientes (a Domínio importa mais rápido): tudo separado, cada um na sua pasta.
+2. NFS-e: "Enviar Box-e" para exatoara@dominioboxe.com.br, automático, nunca reenviando a mesma nota.
+3. (abertura em outra máquina parada em "Arquivo Fiscal Local: 48000/49xxx registro(s) conferidos...").
+
+O QUE FOI FEITO
+1. ZIP: exato_zip_importacao.py. Um ZIP por pasta de tipo/direção/mês (CNPJ_AAAA-MM_Tipo_Direção.zip), XMLs soltos dentro (sem subpastas, sem PDF) + eventos de cancelamento das notas canceladas; refeito só quando o conjunto muda (assinatura no comentário do ZIP); gravado em arquivo temporário e trocado no fim; XMLs soltos intactos. Ligado por padrão; caixa na tela Buscar XML e na NFS-e. Chamado depois de qualquer "salvar" (save_documents_any e os dois pontos diretos), sem alterar save_documents_organized (núcleo protegido).
+2. Box-e: exato_boxe.py + tela. Ao ligar pela primeira vez, só as NFS-e NOVAS daqui para frente são enviadas (o histórico que o Exato já tinha não vai, para não inundar o Box-e); no diálogo há uma caixa para enviar também o histórico (config `desde`). Só NFS-e prestadas (tomadas opcionais no diálogo); eventos de cancelamento seguem; até 20 XMLs/8 MB por e-mail, um grupo por empresa/mês; assunto "NFS-e CNPJ Empresa AAAA-MM (n arquivo(s))". Nunca reenvia: tabela local + MARCA atômica na pasta do servidor (várias máquinas); sem acesso à pasta do servidor espera; falha de e-mail devolve a marca e tenta de novo após 30 min; marca "enviando" esquecida é retomada após 30 min. Diálogo com teste de envio (vai para o remetente, não para o Box-e), senha protegida (DPAPI), erros em português claro (usuário/senha, "senha de aplicativo", servidor, segurança). Agendador de 60 s e disparo após buscas/importações.
+3. Reparo único da V145 (causa da "parada"): roda em segundo plano depois de abrir a janela, com aviso na barra de status por etapa (conferindo N%, cópia de segurança, gravando, cancelamentos); NFS-e (chave de 50 dígitos) saiu dos candidatos (antes entravam sempre e obrigavam a ler o XML de todas); cópia de segurança com compressão leve (mais rápida).
+
+REVISÃO FEITA NESTA VERSÃO (regra do usuário)
+- Releitura do diff; testes: test_v168_zip_importacao (módulo + salvar de verdade, evento de cancelada, desligado), test_v168_boxe (servidor SMTP de mentira: lotes, marcas, outro computador, falha, marca parada, tomadas, evento, teste), test_v168_boxe_ui (diálogo, ligar/desligar, envio automático, aviso de falha), test_v168_reparo_segundo_plano (etapas, NFS-e fora, segundo plano).
+- Armadilhas do Windows: caminhos de rede longos (prefixo UNC), marca criada com O_EXCL, threads sem chamar Tk (fila `_repo_post`), cor/estilo do diálogo; escape de regex dentro de f-string corrigido (nome do ZIP).
+- Captura da tela NFS-e (1366x650) e do diálogo; simulação de roda em todas as telas (0 erros).
+
+A CONFERIR NO WINDOWS
+- ZIP: salvar XMLs de uma empresa e abrir o ZIP; conferir com a Domínio se aceitam XMLs soltos na raiz do ZIP e se há limite de tamanho (hoje sem limite).
+- Box-e: configurar o e-mail de envio, usar "Enviar e-mail de teste" e começar com UMA empresa; confirmar com a Domínio se o Box-e só aceita remetentes cadastrados e se reconhece a empresa pelo CNPJ do XML. O primeiro envio real é do usuário (aqui só com servidor de e-mail de mentira).
+- Abertura: o aviso "Preparando o arquivo fiscal..." deve aparecer na barra de baixo e o programa já abre.

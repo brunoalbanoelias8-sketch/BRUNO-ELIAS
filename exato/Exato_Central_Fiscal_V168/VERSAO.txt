@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V168
+
+ZIP para importação na Domínio, Enviar Box-e (NFS-e) e conferência do arquivo fiscal em segundo plano. Nenhuma regra fiscal existente foi alterada.
