@@ -1,0 +1,22 @@
+V171 — EMPRESA ESCOLHIDA NA AUDITORIA FISCAL E COPIA/BOX-E ESPERAM A BUSCA
+
+PEDIDOS DO USUÁRIO
+1. Auditoria Fiscal: "aqui deveria ter uma opção de escolher empresa que quer auditar" (a empresa vinha fixa da tela Buscar XML).
+2. "Está travando na hora de buscar" (V170): causa NÃO reproduzida; aplicada a mitigação provável (item 2 abaixo) e pedidos de dados mantidos (exato.log, qual busca, V168 também trava?).
+
+O QUE FOI FEITO
+1. Auditoria: o cartão EMPRESA agora é uma caixa de escolha com as empresas cadastradas ("Nome — CNPJ"; também aceita digitar o CNPJ). Sem escolha própria, acompanha a empresa em uso em Buscar XML; ao escolher, a Auditoria passa a usar a empresa escolhida (relatório, importação do Excel do SAT, PDF, histórico, Exato IA) SEM mudar a de Buscar XML, a escolha fica lembrada (config `audit_cnpj`) e o resultado da auditoria anterior é descartado ao trocar de empresa. Vindo de "Auditar" na tela Documentos Fiscais, audita a empresa de lá (volta a acompanhar). `App._audit_cnpj()` é o único lugar que decide o CNPJ auditado (nenhuma função da Auditoria lê `cnpj_var` direto; teste confere). Núcleos `_audit_*` NÃO foram tocados.
+2. Cópia e Box-e esperam a busca: com uma busca em andamento (Buscar XML, NFS-e, atualização automática ou várias empresas) a cópia automática do Repositório e o envio ao Box-e não começam (`_busca_em_andamento`); recomeçam no fim da busca (já eram chamados nesse momento) ou no próximo ciclo. "Copiar agora" continua valendo. Evita disputa pelo banco/rede com a busca.
+
+NÃO FEITO (fica anotado)
+- Aviso quando o CNPJ dentro do Excel do SAT não bate com a empresa escolhida: depende da leitura de colunas no motor da auditoria (núcleo protegido); precisa de autorização para mexer ou de uma checagem fora do núcleo.
+- Contagem de documentos da empresa no período dentro do seletor.
+
+REVISÃO FEITA NESTA VERSÃO (regra do usuário)
+- Releitura do diff; teste novo test_v171_auditoria_empresa (escolher, digitar, texto inválido, lembrar ao reabrir, Buscar XML intocado, resultado descartado, nenhuma função da Auditoria usa cnpj_var, janelas 1366x650 e 1000x600, cópia/Box-e esperando a busca).
+- Capturas 1366x650 claro/escuro, fuzz de roda, núcleos 13/13 e ativos 31/31 iguais à V145.
+- Observação do ambiente: test_v171_nfse_portal (navegador de verdade) trava neste ambiente (V168 a V170 travam igual); conferir no GitHub Actions.
+
+A CONFERIR NO WINDOWS
+- Auditoria: trocar a empresa e conferir que o relatório/PDF saem da empresa certa.
+- Se a lentidão ao buscar continuar: enviar o exato.log logo depois de uma busca que travou e dizer qual busca (Buscar XML, NFS-e, automática).

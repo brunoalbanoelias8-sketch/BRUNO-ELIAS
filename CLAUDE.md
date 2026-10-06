@@ -31,4 +31,5 @@
 - Box-e (V169): erros separados por causa em `exato_boxe.erro_amigavel`; `servidor_sugerido` (Gmail/Outlook/Hotmail), `conferir_servidor` e `testar_conexao` (etapas, sem enviar e-mail).
 - Ambiente de desenvolvimento (V169): `test_*_nfse_portal.py` (navegador de verdade) trava aqui porque o Playwright instalado espera outra versão do Chromium (V168 trava igual); rodar a suíte pulando esse teste e conferir no GitHub Actions.
 - Certificado por tela (V170): `App.selected` = Buscar XML, `App.nfse_selected` = NFS-e (config `selected_certificate_*` / `nfse_certificate_*`); a escolha abre por `_show_certificate_list(origem)` ('buscar' | 'nfse' | 'menu'), só vale em `confirm_selection` (clicar na linha só marca: `_cert_pick`) e volta para a tela de origem. Código de NFS-e usa `nfse_selected`; nunca voltar a um certificado único.
+- Auditoria por empresa (V171): `App._audit_cnpj()` decide o CNPJ auditado (escolha da tela, config `audit_cnpj`; vazio = acompanha Buscar XML); funções da Auditoria NUNCA leem `cnpj_var` direto. Cópia do Repositório e Box-e automáticos esperam `_busca_em_andamento()`.
 

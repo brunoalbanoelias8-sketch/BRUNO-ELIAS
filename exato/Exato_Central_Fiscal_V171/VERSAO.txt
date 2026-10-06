@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V171
+
+Auditoria Fiscal com escolha da empresa a auditar, e a cópia para o servidor e o envio ao Box-e esperam o fim de uma busca. Nenhuma regra fiscal existente foi alterada.
