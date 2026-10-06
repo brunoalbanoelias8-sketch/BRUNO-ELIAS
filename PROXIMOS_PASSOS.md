@@ -104,3 +104,5 @@ Pedido do usuário: abrir em vários computadores e os números serem iguais. Ho
 1. Ler `CLAUDE.md` e a continuidade da V151.
 2. Toda entrega recebe número novo (V152, V153...). Copiar a pasta, trocar `APP_VERSION`, `.bat`, `VERSAO.txt`, `README.txt` e criar NOTAS, CONTINUIDADE, CHECKLIST e PROTECAO. O teste `test_versao_consistente.py` confere.
 3. Rodar `xvfb-run -a python testes/run_suite.py` na pasta da versão e conferir o GitHub Actions antes de entregar o ZIP.
+
+- Box-e (V168): confirmado pelo usuário em 2026-10-06 que o e-mail de teste/envio com Gmail (smtp.gmail.com:587, STARTTLS, senha de aplicativo) está saindo. Falta confirmar que as notas aparecem no Box-e/Domínio. O erro "Não consegui conectar" anterior parece ter sido da senha comum (8 caracteres) em vez da senha de aplicativo: na V169, separar as mensagens de erro (senha recusada x rede bloqueada).
