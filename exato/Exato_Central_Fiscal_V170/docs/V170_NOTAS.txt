@@ -1,0 +1,22 @@
+V170 — UM CERTIFICADO POR TELA (BUSCAR XML E NFS-e)
+
+PEDIDO DO USUÁRIO
+"A seleção de certificados está bem confusa... cada aba 'Buscar XML' e 'NFS-e' deveria ter a seleção individualmente. E não necessariamente ter um lugar só pra certificado, porque hoje quando eu seleciono, está indo direto pra 'Buscar XML'."
+
+O QUE FOI FEITO
+- Dois certificados separados: `App.selected` (Buscar XML, como antes) e `App.nfse_selected` (NFS-e, novo), cada um com a sua chave no config (`selected_certificate_*` e `nfse_certificate_*`). Escolher numa tela não muda a outra.
+- A tela de escolha sabe de onde veio (`_show_certificate_list(origem)`): "Escolher certificado" da NFS-e abre "Certificado para a NFS-e" e o botão "Usar na NFS-e" VOLTA para a NFS-e; "Trocar certificado" de Buscar XML abre "Certificado para Buscar XML" e volta para Buscar XML. O item "Certificado" do menu continua existindo: abre "Certificados", com "USAR EM: Buscar XML e NFS-e / Só Buscar XML / Só NFS-e", e depois vai para a tela escolhida.
+- Clicar numa linha só MARCA o certificado: ele só passa a valer quando a pessoa clica no botão (antes já valia na hora, mesmo sem confirmar).
+- A tela mostra "Em uso agora • Buscar XML: ... • NFS-e: ..."; a NFS-e mostra "Certificado da NFS-e: ..."; o topo (Cert.: ...) acompanha a tela em que a pessoa está.
+- Migração: quem já tinha um certificado escolhido fica com o mesmo nas duas telas na primeira abertura (e a escolha da NFS-e passa a ser gravada à parte). Se o certificado de uma tela não estiver mais instalado, só aquela tela perde (a outra continua) e a escolha avisa em português.
+- O assistente (Exatinho) e a rodada automática/piloto da NFS-e continuam usando o certificado de cada empresa instalado no computador; a busca manual da NFS-e usa o certificado da NFS-e; NF-e/NFC-e/CT-e usam o de Buscar XML.
+
+REVISÃO FEITA NESTA VERSÃO (regra do usuário)
+- Releitura do diff; testes: test_v170_certificado_por_aba (migração, marcar sem confirmar, escolher pela NFS-e/Buscar XML/menu, voltar para a tela de origem, topo, reabrir o programa, certificado que sumiu, NFS-e sem certificado, 1366x650 e 1000x600), ajustes em test_v170_certificado_unico, test_v170_nfse_ui e test_v170_feedback.
+- Armadilhas: o clique na lista dispara um evento que sobrescrevia a mensagem do rodapé (corrigido: um só lugar escreve a mensagem); `winfo_ismapped` não serve para saber se um bloco está empacotado numa tela escondida (usado `winfo_manager`).
+- Capturas 1366x650 (claro e escuro), fuzz de roda em todas as telas, núcleos 13/13 e ativos 31/31 iguais à V145.
+- Observação do ambiente: test_v170_nfse_portal (navegador de verdade) trava neste ambiente (a V168 e a V169 travam igual); conferir no GitHub Actions.
+
+A CONFERIR NO WINDOWS
+- Escolher um certificado pela NFS-e e outro por Buscar XML e conferir que cada tela mantém o seu depois de fechar e abrir o Exato.
+- Cada pessoa/computador já tinha um certificado salvo: conferir que a NFS-e começou com o mesmo.
