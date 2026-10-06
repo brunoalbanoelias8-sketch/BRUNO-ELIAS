@@ -1,0 +1,27 @@
+V169 — REPOSITÓRIO COM OS MESMOS NÚMEROS EM TODOS OS COMPUTADORES, BOX-E COM ERROS CLAROS
+
+PEDIDOS DO USUÁRIO
+1. Abrir o Repositório em vários computadores e ver os mesmos números ("o que importa é que todos saibam o que já está no servidor ou não").
+2. Entender a tela da máquina nova (parecia "enviar tudo de novo"), a fila de 100 e os 5 "com conteúdo diferente".
+3. Box-e com Gmail: "Não consegui conectar" não dizia o que estava errado.
+
+O QUE FOI FEITO
+1. Números iguais: exato_repositorio.py ganhou o ÍNDICE DO SERVIDOR (Repositório\.indice\resumo.json), por empresa e mês: `conhecidos` (maior número de documentos que algum computador conhece), `no_servidor` (contagem real das pastas, sem abrir arquivos), `diferentes`, quando e por qual computador foi gerado. `faltam = conhecidos - no_servidor` é igual em todas as máquinas. Tela: quadros "XMLs no servidor", "Empresas", "Ainda faltam" (clicável: filtra) e "Com conteúdo diferente" (clicável: abre a lista); tabela por empresa/mês também vem do índice; linha "Números do servidor, atualizados em ... por PC-X (iguais em todos os computadores)". O índice só é refeito se tiver mais de 5 minutos (ao abrir a tela, a cada ~45 s com a tela aberta, e depois de copiar); gravado em arquivo temporário e trocado de uma vez (com nova tentativa se outro computador estiver lendo); contagem incompleta (erro de rede no meio) NÃO é gravada; sem servidor, mostra a última cópia guardada neste computador e avisa. Quem tem documentos que ainda não copiou "avisa" o índice sem varrer (publicar_conhecidos), então os outros já veem "faltam N". Meses apagados por prazo saem da conta.
+2. Fila e máquina nova: o que é só deste computador virou um aviso pequeno ("Neste computador: N aguardando") com o MOTIVO em português (sem permissão, servidor não respondeu, arquivo em uso, sem espaço, nome longo...) e a hora da próxima tentativa. "Copiar agora" ZERA a pausa de 1 hora e tenta de novo na hora (a lista anda por doc_id: o que falha na rodada não volta em loop). Computador novo: "Conferindo o que já está no servidor (só desta vez)..." e, no fim, "N documento(s) já estavam no servidor; nada foi copiado de novo". Lista dos "com conteúdo diferente" (empresa, mês, final da chave, tamanho do original e do que ficou ao lado; botão para abrir a pasta). Aviso se o relógio do computador estiver atrasado em relação à última cópia.
+3. Box-e: mensagens separadas (servidor não encontrado, porta bloqueada pela rede/antivírus, tempo esgotado, conexão que caiu, segurança, usuário/senha com "senha de aplicativo"); ao digitar o e-mail @gmail.com / @outlook.com / @hotmail.com / @live.com / @office365.com o servidor, a porta e a segurança saem sozinhos; aviso se o campo "Servidor" tiver um e-mail; botão "Testar a conexão" que diz em qual etapa falhou (achar o servidor, abrir a porta, conexão segura, usuário e senha) sem enviar e-mail; janela nunca passa da tela.
+
+LIMITAÇÃO CONHECIDA
+- `conhecidos` usa o MAIOR número por empresa/mês entre os computadores (não a união): se dois computadores têm notas diferentes do mesmo mês, "faltam" pode contar menos do que falta de fato até um deles copiar. Nunca mostra mais do que existe.
+
+REVISÃO FEITA NESTA VERSÃO (regra do usuário)
+- Releitura do diff; testes novos: test_v169_repositorio_indice (dois bancos + uma pasta de servidor: mesmos números, faltam, diferentes, prazo, contagem incompleta, erros em português, Copiar agora, máquina nova), test_v169_repositorio_indice_ui (tela: máquina nova, outro computador, servidor fora, motivos, lista de diferentes, relógio, 1000x600; diálogo do Box-e), test_v169_boxe_erros (mensagens, servidor sugerido, teste por etapas com servidor de e-mail de mentira).
+- Armadilhas do Windows: caminhos de rede longos (prefixo UNC) no índice; troca atômica do índice com nova tentativa (arquivo aberto por outro computador); nada de rede na linha da tela (índice, publicar e cópia em segundo plano; `_repo_post`); atualização do índice não bloqueia a abertura.
+- Capturas 1366x650 (claro e escuro): Repositório (quadros, aviso do computador, tabela), lista de diferentes, diálogo do Box-e com o resultado do teste.
+- Fuzz de roda em todas as telas.
+- Núcleos fiscais: 13/13 e ativos 31/31 iguais à V145.
+- Observação do ambiente: test_v169_nfse_portal (navegador de verdade) trava neste ambiente de desenvolvimento por causa da versão do navegador instalada (a V168 trava igual aqui); roda no GitHub Actions.
+
+A CONFERIR NO WINDOWS
+- Abrir o Repositório em dois computadores: os quatro quadros devem mostrar o mesmo (até 5 minutos de diferença na atualização).
+- Box-e: "Testar a conexão" com o Gmail e a senha de aplicativo; confirmar que as NFS-e chegam ao Box-e/Domínio.
+- Se existirem arquivos "chave.xxxxxxxx.xml" no servidor, abrir a lista e conferir qual vale.

@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V169
+
+Repositório com os mesmos números em todos os computadores, "Copiar agora" com motivo da fila em português e Box-e com mensagens de erro claras e teste da conexão. Nenhuma regra fiscal existente foi alterada.
