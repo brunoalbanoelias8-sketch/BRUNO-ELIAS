@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V172
+
+Correção do travamento ao buscar (banco de dados ocupado pela Central compartilhada). Nenhuma regra fiscal existente foi alterada.

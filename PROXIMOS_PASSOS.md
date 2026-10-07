@@ -107,6 +107,8 @@ Plano V170: (a) dois estados separados: `selected` (Buscar XML) e `nfse_selected
 - `conhecidos` usa o MAIOR número por empresa/mês (não a união entre computadores): se isso confundir, trocar por lista de chaves no índice.
 - Esperando da Domínio: ZIP (subpastas, limite, NFS-e) e API/homologação.
 
+## Feedback pós-V171 (ENTREGUE na V172): travando ao buscar = "database is locked" (exato.log de 07/10) — causa na Central compartilhada (`mark_documents_dirty` + semeadura repetida). Confirmar no Windows.
+
 ## Pendências depois da V171
 - Aviso quando o CNPJ do Excel do SAT não bate com a empresa escolhida na Auditoria (precisa mexer no motor da auditoria = núcleo protegido, ou checagem à parte; pedir autorização).
 - Lentidão ao buscar: aguardar exato.log e detalhes; se continuar, medir de verdade no computador do usuário (modo diagnóstico).

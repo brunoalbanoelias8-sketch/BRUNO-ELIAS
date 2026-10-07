@@ -1,0 +1,26 @@
+V172 — BUSCA SEM TRAVAR (BANCO DE DADOS OCUPADO)
+
+PEDIDO DO USUÁRIO
+"Está travando na hora de buscar" + print do aviso "Algo não saiu como esperado" + exato.log (V171, 07/10 08:11): `sqlite3.OperationalError: database is locked` em `db_start_run` ao clicar em Buscar XML (e o mesmo erro na NFS-e na V168).
+
+CAUSA ENCONTRADA (lida do exato.log e confirmada por medição)
+- O registro da busca (`db_start_run`) esperava até 30 s, NA TELA, que outra parte do programa soltasse o banco; passado o tempo, dava o erro e a busca nem começava.
+- Quem segurava o banco: `central_client.mark_documents_dirty` (Central compartilhada, computador com papel de servidor). Para CADA documento marcado ele chamava `_next_central_stamp`, que faz 3 consultas varrendo as tabelas inteiras (documentos, empresas, exportações), e tudo numa única gravação aberta. Com 30 mil documentos: 300 marcados levavam 1,05 s (medido na V171); uma busca que devolve milhares de documentos já existentes (janela de 90 dias) segurava o banco por dezenas de segundos. A atualização automática (todas as empresas, a cada 4 h) repetia isso.
+- Segundo problema (mesma região): a fila de envio da Central era "semeada" sempre que ficava vazia (comentário dizia "uma vez"): depois de enviar tudo, o próximo ciclo recolocava TODOS os documentos na fila e a Central reenviava o arquivo inteiro, sem parar (gravação constante no banco).
+
+O QUE FOI FEITO
+1. `_Carimbo`: um carimbo por lote (3 consultas) e os seguintes são +1 microssegundo em memória; gravação em lotes de 200 documentos (commit). Medido: 300 documentos 1,05 s -> 0,01 s.
+2. Índices do carimbo da Central (companies, documents, document_exports: `central_updated_at`) no cliente e no servidor: o maior carimbo sai na hora.
+3. Semeadura única de verdade (coluna `semeado` em `central_sync_state`; instalação que já sincronizou antes não semeia de novo) e o esquema da Central só é conferido uma vez por abertura (antes regravava a cada chamada).
+4. Registro da busca que não trava a tela: espera 2 s x 3 tentativas; se o banco continuar ocupado, a busca SEGUE sem o registro (nunca mais "database is locked" ao clicar em Buscar) e o exato.log anota "Banco ocupado ao ... Trabalhos em segundo plano: ..." para sabermos quem estava com o banco. `db_update_run(None)` não faz nada.
+
+REVISÃO FEITA NESTA VERSÃO (regra do usuário)
+- exato.log do usuário lido (item 5 da regra): V160 (cor de sistema, já corrigida na V161), V165 (config.tmp e banco ocupado, corrigidos na V166), V168 (banco ocupado na NFS-e) e V171 (banco ocupado ao buscar): este último é o desta versão. Nenhum erro novo além desses.
+- Releitura do diff; teste novo test_v172_banco_busca (30 mil documentos: semeadura única, instalação antiga, índices, um carimbo por lote, carimbos únicos e crescentes, outra gravação passa durante a marcação, banco ocupado não trava o registro da busca e fica no log).
+- Suíte inteira, fuzz de roda, núcleos 13/13 e ativos 31/31 iguais à V145 (nenhum núcleo foi tocado).
+- Observação do ambiente: test_v172_nfse_portal (navegador de verdade) trava neste ambiente (V168 a V171 travam igual); conferir no GitHub Actions.
+
+A CONFERIR NO WINDOWS
+- Buscar XML logo depois de abrir o Exato (com a atualização automática ligada): não deve mais travar nem dar o aviso "Algo não saiu como esperado".
+- Se ainda aparecer "Banco ocupado" no exato.log, enviar o arquivo: a linha agora diz quais trabalhos em segundo plano estavam rodando.
+- Lembrete: o aviso de lentidão pode ter ficado só uma vez (primeiro ciclo depois de instalar), pois a fila da Central pode ser semeada uma última vez.
