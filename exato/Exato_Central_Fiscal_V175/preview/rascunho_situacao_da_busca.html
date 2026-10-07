@@ -1,0 +1,54 @@
+<!doctype html><meta charset="utf-8"><style>
+*{box-sizing:border-box}body{margin:0;width:1366px;height:860px;background:#F1F4F9;font-family:'Segoe UI','DejaVu Sans',sans-serif;color:#0F172A;font-size:13px;position:relative}
+.top{height:60px;background:#fff;border-bottom:1px solid #E6EAF1;display:flex;align-items:center;padding:0 30px;gap:12px}
+.top b{font-weight:600;font-size:16px}.top span{color:#64748B}
+.side{position:absolute;left:0;top:60px;bottom:0;width:232px;background:#0B1220;color:#E2E8F0;padding:20px 12px}
+.side div{padding:9px 14px;margin:2px 0;font-size:14px}.side .on{background:#17233B;border-left:3px solid #E11D2E;border-radius:4px}
+.logo{height:70px;color:#fff;font-weight:700;font-size:30px;padding:10px 14px}.logo i{color:#E11D2E;font-style:normal}
+.main{position:absolute;left:232px;top:60px;right:0;padding:26px 56px}
+h1{font-weight:400;font-size:30px;margin:0}.sub{color:#64748B;margin:2px 0 14px}
+.tabs{display:flex;gap:6px;margin-bottom:12px}.tab{padding:8px 16px;border-radius:10px;background:#fff;border:1px solid #E6EAF1;color:#475569}.tab.on{background:#E11D2E;color:#fff;border-color:#E11D2E}
+.card{background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(15,23,42,.12)}
+.tiles{display:flex;gap:16px;margin-bottom:12px}.tile{flex:1;padding:14px 16px;display:flex;gap:12px;align-items:center}
+.ic{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px}
+.tile .n{font-size:22px}.tile .t{font-size:12px}
+.bar{padding:12px 16px;display:flex;gap:10px;align-items:center;margin-bottom:12px}
+.inp{border:1px solid #E6EAF1;border-radius:10px;padding:8px 12px;color:#94A3B8;width:260px}.sel{border:1px solid #E6EAF1;border-radius:10px;padding:8px 12px;background:#fff}
+.btn{border-radius:10px;padding:9px 16px;font-weight:600;background:#E11D2E;color:#fff;margin-left:auto}.btn2{border:1px solid #E6EAF1;border-radius:10px;padding:8px 14px;background:#fff}
+table{width:100%;border-collapse:collapse}th{font-weight:600;font-size:11px;color:#64748B;text-align:left;padding:10px 8px;letter-spacing:.3px;text-transform:uppercase;background:#F6F8FB}
+td{padding:9px 8px;border-top:1px solid #EEF2F7;vertical-align:middle}td.e{width:210px;font-weight:600;font-size:12.5px}td.e small{display:block;font-weight:400;color:#64748B;font-size:11px}
+.p{display:inline-block;border-radius:999px;padding:3px 10px;font-weight:600;font-size:11px;white-space:nowrap}
+.ok{background:#DCFCE7;color:#15803D}.warn{background:#FEF3C7;color:#B45309}.bad{background:#FEE2E2;color:#B91C1C}.mut{background:#EEF2F7;color:#475569}.inf{background:#DBEAFE;color:#2563EB}
+.d{display:block;color:#64748B;font-size:11px;margin-top:3px}
+.go{border:1px solid #E6EAF1;border-radius:9px;padding:6px 10px;font-size:12px;background:#fff;white-space:nowrap}.go.r{background:#E11D2E;color:#fff;border-color:#E11D2E}
+.leg{margin-top:10px;color:#64748B;font-size:11px;display:flex;gap:14px;align-items:center}
+.note{position:absolute;right:20px;top:70px;background:#FEF9C3;border:1px solid #FDE68A;border-radius:8px;padding:6px 12px;font-size:11px;color:#854D0E}
+</style>
+<div class="top"><span>Exato Central Fiscal /</span><b>Empresas</b></div><div class="note">PROTÓTIPO — dados de exemplo</div>
+<div class="side"><div class="logo"><i>e</i>xato</div><div>Início</div><div>Buscar XML</div><div>NFS-e</div><div>Documentos Fiscais</div><div class="on">Empresas</div><div>Repositório</div><div>Auditoria Fiscal</div><div>Pendências</div><div>Histórico</div><div>Relatórios</div></div>
+<div class="main">
+<h1>Empresas</h1><div class="sub">Sua carteira de empresas e a saúde das sincronizações.</div>
+<div class="tabs"><div class="tab">Carteira</div><div class="tab on">Situação da busca</div></div>
+<div class="tiles">
+<div class="card tile"><div class="ic" style="background:#DCFCE7;color:#15803D">✓</div><div><div class="n" style="color:#15803D">3</div><div class="t" style="color:#15803D">Em dia</div></div></div>
+<div class="card tile"><div class="ic" style="background:#FEF3C7;color:#B45309">◷</div><div><div class="n" style="color:#B45309">2</div><div class="t" style="color:#B45309">Com atraso (mais de 3 dias)</div></div></div>
+<div class="card tile"><div class="ic" style="background:#FEE2E2;color:#B91C1C">!</div><div><div class="n" style="color:#B91C1C">1</div><div class="t" style="color:#B91C1C">Com tipo ainda não buscado</div></div></div>
+<div class="card tile"><div class="ic" style="background:#EEF2F7;color:#475569">▦</div><div><div class="n">6</div><div class="t">Empresas</div></div></div></div>
+<div class="card bar"><div class="inp">Pesquisar por nome ou CNPJ...</div><div class="sel">Todas as situações ▾</div><div class="sel">Todos os tipos ▾</div><div class="btn">Buscar o que falta (3 empresas)</div></div>
+<div class="card"><table>
+<tr><th>Empresa</th><th>NF-e</th><th>NFC-e</th><th>CT-e</th><th>NFS-e</th><th></th></tr>
+<tr><td class="e">ELETROTAK MANUTENCAO INDUSTRIAL<small>12.345.678/0001-95</small></td>
+<td><span class="p ok">Em dia</span><span class="d">até 06/10 • 1.240 notas</span></td><td><span class="p bad">Ainda não buscado</span><span class="d">nenhum registro de busca</span></td><td><span class="p ok">Em dia</span><span class="d">até 06/10 • 38 notas</span></td><td><span class="p ok">Em dia</span><span class="d">até 06/10 • 212 notas</span></td><td><span class="go r">Buscar o que falta</span></td></tr>
+<tr><td class="e">JC AUTO PECAS LTDA<small>11.222.333/0001-81</small></td>
+<td><span class="p warn">Atrasado 17 dias</span><span class="d">até 20/09 • 3.015 notas</span></td><td><span class="p mut">Sem notas</span><span class="d">buscado até 20/09</span></td><td><span class="p warn">Atrasado 17 dias</span><span class="d">até 20/09 • 12 notas</span></td><td><span class="p mut">Não se aplica</span><span class="d">empresa não presta serviço</span></td><td><span class="go r">Buscar o que falta</span></td></tr>
+<tr><td class="e">BENVALE COMERCIO DE ALIMENTOS<small>55.444.333/0001-22</small></td>
+<td><span class="p ok">Em dia</span><span class="d">até 07/10 • 860 notas</span></td><td><span class="p ok">Em dia</span><span class="d">até 07/10 • 4.410 notas</span></td><td><span class="p mut">Sem notas</span><span class="d">buscado até 07/10</span></td><td><span class="p mut">Não se aplica</span><span class="d">empresa não presta serviço</span></td><td><span class="go">Buscar agora</span></td></tr>
+<tr><td class="e">CLINICA SAUDE E VIDA S/S<small>66.777.888/0001-10</small></td>
+<td><span class="p ok">Em dia</span><span class="d">até 07/10 • 95 notas</span></td><td><span class="p mut">Sem notas</span><span class="d">buscado até 07/10</span></td><td><span class="p mut">Sem notas</span><span class="d">buscado até 07/10</span></td><td><span class="p ok">Em dia</span><span class="d">até 07/10 • 640 notas</span></td><td><span class="go">Buscar agora</span></td></tr>
+<tr><td class="e">TRANSPORTES ALFA LTDA<small>77.888.999/0001-20</small></td>
+<td><span class="p warn">Atrasado 5 dias</span><span class="d">até 02/10 • 410 notas</span></td><td><span class="p mut">Sem notas</span><span class="d">buscado até 02/10</span></td><td><span class="p warn">Atrasado 5 dias</span><span class="d">até 02/10 • 2.980 notas</span></td><td><span class="p mut">Não se aplica</span><span class="d">empresa não presta serviço</span></td><td><span class="go r">Buscar o que falta</span></td></tr>
+<tr><td class="e">MERCADO DO VALE LTDA<small>88.999.111/0001-30</small></td>
+<td><span class="p ok">Em dia</span><span class="d">até 07/10 • 2.205 notas</span></td><td><span class="p ok">Em dia</span><span class="d">até 07/10 • 9.870 notas</span></td><td><span class="p mut">Sem notas</span><span class="d">buscado até 07/10</span></td><td><span class="p mut">Não se aplica</span><span class="d">empresa não presta serviço</span></td><td><span class="go">Buscar agora</span></td></tr>
+</table></div>
+<div class="leg"><span class="p ok">Em dia</span> buscado nos últimos 3 dias <span class="p warn">Atrasado</span> última busca há mais de 3 dias <span class="p bad">Ainda não buscado</span> nunca foi buscado <span class="p mut">Sem notas</span> buscado, mas a empresa não tem notas desse tipo</div>
+</div>
