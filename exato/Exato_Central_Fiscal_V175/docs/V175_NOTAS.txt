@@ -1,0 +1,10 @@
+V175 — ISS RETIDO SEPARADO EM PRESTADOS E TOMADOS (RELATÓRIO DE NFS-e)
+
+PEDIDO DO USUÁRIO
+- No resumo do relatório em PDF das NFS-e havia uma única coluna "ISS retido"; separar em prestado e tomado.
+
+O QUE FOI FEITO
+- `monthly_summary` ganhou `prest_iss_retido` e `tom_iss_retido` (o total `iss_retido` continua existindo). O resumo por mês do relatório mensal em lote e o "Resumo mensal de NFS-e" em PDF agora têm as colunas "ISS retido (prestados)" (ao lado de ISS prestados) e "ISS retido (tomados)" (ao lado de ISS tomados), com os totais do período. A planilha Excel "Resumo mensal" também. Larguras das 10 colunas somam 269 mm (largura útil da página). As listas de notas não mudaram (a coluna "ISS retido" por nota, Sim/Não/—, e o "retido: R$ x" no total de cada mês e tipo já eram separados).
+
+REVISÃO FEITA NESTA VERSÃO (regra do usuário)
+- Releitura do diff; test_v175_nfse_iss ampliado (retido por tipo em setembro e outubro, cabeçalhos novos nos dois PDFs e na planilha); PDF de exemplo conferido visualmente; suíte inteira (sem o teste do portal, que trava neste ambiente); núcleos 13/13 e ativos 31/31 iguais à V145.

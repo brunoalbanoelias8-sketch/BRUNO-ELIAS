@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V175
+
+Relatório de NFS-e com o ISS retido separado em prestados e tomados. (Inclui o fechamento do mês no Repositório da V174 (relatório em PDF e ZIPs gerados sozinhos quando o mês para de receber notas) e ZIP de todos os tipos de documento, inclusive dos meses já salvos.) Nenhuma regra fiscal existente foi alterada.
