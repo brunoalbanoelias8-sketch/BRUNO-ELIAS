@@ -1,0 +1,21 @@
+V176 — SITUAÇÃO DA BUSCA POR EMPRESA E CORREÇÕES DO FECHAMENTO DO MÊS
+
+PEDIDOS DO USUÁRIO
+1. Uma tela para consultar, por empresa, se NFS-e, NF-e, CT-e e NFC-e já foram buscados/importados ("para ter certeza e confiança de que a Central já fez a busca"). Rascunho aprovado; dentro de Empresas; atraso = mais de 3 dias; botão "Buscar o que falta"; busca sem notas = "Sem notas".
+2. O fechamento do mês (V174) não fechava nada sozinho e, depois de "Fechar agora", o filtro "Só meses fechados" continuava vazio (0 de 253).
+
+O QUE FOI FEITO
+1. Empresas > aba "Situação da busca" (`exato_situacao_busca.py`, sem Tkinter; `App._sit_*`): quadros (Em dia / Com atraso / Com tipo ainda não buscado / Empresas), filtros (texto, situação, tipo), uma linha por empresa e uma coluna por tipo com selo e detalhe: verde "Em dia · até DD/MM · N notas", amarelo "Atrasado N dia(s)", vermelho "Ainda não buscado", cinza "Sem notas · buscado até DD/MM". Botão "Buscar o que falta" por empresa (e geral, para todas com pendência): usa a rodada automática só para as empresas pedidas (busca inteligente: só o que falta; um único aviso no fim); os selos se atualizam sozinhos enquanto a busca roda e ao terminar. A aba escolhida fica lembrada (`empresas_aba`). NF-e, NFC-e e CT-e compartilham a cobertura mais recente do grupo (a mesma busca cobre os três): um tipo raro não faz a empresa parecer atrasada. NFS-e tem a própria cobertura. Padrão adotado onde o usuário não respondeu: 4 tipos sempre visíveis; "Sem notas" (não há marcação "Não se aplica").
+2. Fechamento — causa 1 (cobertura): a conferência "a busca já passou do fim do mês" exigia isso de CADA tipo pela "última vez que veio nota daquele tipo"; um CT-e/NFC-e parado em março travava todos os meses seguintes da empresa. Agora vale a cobertura mais recente do grupo XML (`cobertura_empresa`).
+3. Fechamento — causa 2 (tela): depois de fechar, a marca "fechado" só chegava pela varredura do servidor (lenta, ~79 mil arquivos) e a varredura em andamento impedia uma nova. Agora: o mês aparece como "Mês fechado" na hora (memória deste computador `fechamento_estado`), o índice do servidor é anotado direto (`marcar_fechados`, sem varrer) e, se uma varredura já estava rodando, ela é refeita ao terminar.
+4. Fechamento — transparência: nova coluna "Por que ainda não fechou" na tabela do Repositório ("Faltam N documento(s) no servidor", "Chegou nota nova em DD/MM: fecha em DD/MM se não vier mais nenhuma", "A busca ainda não passou do fim do mês", "Pronto: fecha na próxima rodada").
+5. Fechamento — ritmo: "Fechar agora" fecha TODOS os meses prontos (sem limite) e mostra "Fechando os meses... N de M"; a rodada automática fecha até 40 meses e, se ainda sobrar, volta em 5 minutos (antes: 25 por rodada, a cada 25 min).
+
+REVISÃO FEITA NESTA VERSÃO (regra do usuário)
+- Releitura do diff; testes novos: test_v176_situacao_busca (estados, limite de 3 dias, tipo raro, filtros, motivos e candidatos do fechamento), test_v176_situacao_busca_ui (aba, quadros, selos, filtros, botão chamando a rodada só das pendentes, aba lembrada, fechar agora → "Mês fechado" na hora, índice anotado, varredura repetida); suíte inteira (sem o teste do portal, que trava neste ambiente); fuzz de roda; núcleos 13/13 e ativos 31/31 iguais à V145.
+- Armadilhas: nada de Tk fora da tela (leitura em segundo plano + `_repo_post`); aba troca os blocos da carteira por pack_forget/pack (a carteira intacta); colunas do Repositório redimensionadas para caber a nova coluna em 1366x650; capturas 1366x650 e 900x650 em claro e escuro.
+
+A CONFERIR NO WINDOWS
+- Empresas > Situação da busca: conferir se os selos batem com o que você sabe (principalmente "Sem notas" x "Ainda não buscado" para NFC-e e CT-e e a NFS-e das empresas sem certificado).
+- "Buscar o que falta": acompanhar uma empresa até o selo ficar verde.
+- Repositório: "Fechar agora" e a coluna "Por que ainda não fechou".

@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V176
+
+Nova aba Situação da busca em Empresas (o que já foi buscado, por empresa e tipo de documento, com botão Buscar o que falta) e correções do fechamento do mês no Repositório. Nenhuma regra fiscal existente foi alterada.
