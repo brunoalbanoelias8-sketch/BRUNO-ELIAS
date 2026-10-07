@@ -1,0 +1,25 @@
+V173 — RELATÓRIO DE NFS-e COM ISS E BUSCA INTELIGENTE (SÓ O QUE FALTA)
+
+PEDIDOS DO USUÁRIO
+1. Relatório em PDF das NFS-e: mostrar a alíquota, o valor do ISS e se o ISS é retido ("tudo isso aparece na nota").
+2. Busca inteligente: se o Exato já sabe que buscou certo período, não busca de novo; só daqui para frente, também na NFS-e; na dúvida, o repositório é a fonte. Margem de segurança de 3 dias (aprovada).
+3. Aviso na busca manual ("a empresa já tem notas até tal dia") para não rebuscar: empresas de muito movimento ficavam travadas ao rebuscar os últimos 90 dias.
+
+O QUE FOI FEITO
+1. NFS-e com alíquota, ISS e retenção: `exato_nfse.parse_nfse_tributos` (alíquota pAliqAplic/pAliq, ISS vISSQN, retenção tpRetISSQN: 1 = Não, 2 e 3 = Sim, campo ausente = "—", nunca "Não" por falta de dado). Aparece no relatório mensal em lote (colunas Alíq., ISS e ISS retido em cada lista de Prestados/Tomados; totais de ISS e de ISS retido por mês/tipo; resumo por mês com ISS prestados, ISS tomados e ISS retido; totais do período), no resumo mensal em PDF, na "Relação de NFS-e" em PDF e nas planilhas Excel (resumo e notas). Notas canceladas aparecem na lista mas não entram nos totais nem no ISS. O PDF de cada nota já mostrava alíquota e ISS; agora "ISS retido" também reconhece retenção pelo intermediário (código 3). Nota real do Simples Nacional não traz alíquota/ISS: aparece "—" e retido "Não" (como na nota).
+2. Busca inteligente (`exato_cobertura.py`, sem Tkinter): para cada empresa e tipo, "até que dia já temos as notas?": registro da última busca que terminou bem (config `busca_cobertura`); se não houver, o arquivo fiscal deste computador (última vez que o Web Service devolveu notas); se o banco estiver vazio, o índice do Repositório no servidor (fim do último mês com arquivos). Margem de 3 dias. Aplicação:
+   - NFS-e por usuário/senha (por período): sem período digitado, busca desde (cobertura - 3 dias) até hoje (antes: mês anterior inteiro); com período digitado que repete o que já está guardado, avisa e, por padrão, busca só o que veio depois ("período todo" continua disponível; escolha lembrada por empresa; na busca automática vale sempre "só o novo"). Só conta como coberta se a busca foi até o fim e baixou tudo.
+   - NFS-e e Web Service por NSU (certificado): já continuavam do último NSU (nota atrasada ganha NSU maior: não precisa de margem). Novo: se o ponto salvo sumiu e o arquivo já tem notas, continua do maior NSU guardado menos 100 (folga) em vez de baixar todo o histórico; Buscar XML pergunta (ou segue a escolha lembrada) quando o ponto está zerado e o arquivo tem documentos; NSU digitado pela pessoa nunca é mexido.
+   - "Arquivo até DD/MM (X notas)" na tela NFS-e (abaixo da empresa) e em Buscar XML ("Arquivo até ... a próxima busca continua daí").
+3. Fim da lentidão em empresa de muito movimento (medido): cada busca carregava na tela o XML de TODAS as notas da empresa, várias vezes (a cada lote) e na tela principal: 40 mil notas = 4,5 s parados e 340 MB. Agora a lista traz só os dados (o XML vem sob demanda, como na V166): 40 mil notas = 1,0 s; a atualização no meio da busca acontece no máximo a cada 4 s. Somado à correção da V172 (banco) e a só buscar o que falta (menos notas repetidas gravadas, marcadas para a Central e conferidas para o repositório).
+
+REVISÃO FEITA NESTA VERSÃO (regra do usuário)
+- Releitura do diff; testes novos: test_v173_nfse_iss (quatro casos de retenção, nota real do Simples, resumo, seções, PDFs lidos de volta, planilha), test_v173_busca_inteligente (cobertura por origem, margem, período do portal em 7 situações, escolha lembrada, cancelar, busca automática silenciosa, cursor do Emissor Nacional, ponto de partida do Buscar XML, textos na tela, lista sem XML). Ajustados test_v173_nfse_ui (aviso com "período todo" e período vazio já com cobertura) e demais.
+- Armadilhas: janela de pergunta é modal (nunca aparece em busca automática); colunas do PDF somam 269 mm; "Alíq." no lugar de "Alíquota" (quebrava a palavra); cobertura só é gravada se a busca terminou bem; folga de NSU quando o ponto vem do arquivo (ambiente de testes x produção).
+- Capturas 1366x650 (claro e escuro), fuzz de roda, núcleos 13/13 e ativos 31/31 iguais à V145 (o ponto de partida é passado aos núcleos; nenhum foi tocado).
+- Observação do ambiente: test_v173_nfse_portal (navegador de verdade) trava neste ambiente; conferir no GitHub Actions.
+
+A CONFERIR NO WINDOWS
+- NFS-e de um cliente com ISS retido: conferir "ISS retido: Sim" no relatório mensal e na relação; mandar um XML real com retenção se aparecer diferente (campo do município).
+- Empresa de muito movimento: buscar duas vezes seguidas; a segunda deve ser rápida e mostrar "Arquivo até ...".
+- Se o aviso "Esta empresa já tem notas guardadas" incomodar, marcar "Lembrar a minha escolha" na primeira vez.

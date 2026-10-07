@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V173
+
+Relatório de NFS-e com alíquota, ISS e ISS retido, e busca inteligente (só o que ainda não foi puxado, com aviso na busca manual). Nenhuma regra fiscal existente foi alterada.

@@ -1,0 +1,96 @@
+"""ZIP para importação (V168): um ZIP por empresa, mês, tipo e direção, na própria pasta dos XMLs.
+
+A Domínio importa mais rápido quando os XMLs chegam zipados. Depois de salvar os XMLs na pasta dos clientes, cada pasta
+`<Empresa>/<Ano>/<MM - Mês>/<Entrada|Saída|Prestados|Tomados>/<NF-e|NFC-e|CT-e|NFS-e>/` ganha, ao lado dos XMLs soltos, o arquivo
+`<CNPJ>_<AAAA-MM>_<Tipo>_<Direção>.zip` com TODOS os XMLs daquela pasta (soltos, sem subpastas) e, quando houver, os eventos de
+cancelamento das notas da pasta. O ZIP só é refeito quando o conjunto de XMLs muda; é gravado num arquivo temporário e trocado no fim
+(nunca fica um ZIP pela metade). Os XMLs soltos nunca são alterados. Sem Tkinter.
+"""
+from __future__ import annotations
+import hashlib, os, re, tempfile, zipfile
+from pathlib import Path
+
+TIPOS = ('NF-e', 'NFC-e', 'CT-e', 'NFS-e')
+DIRECOES = ('Entrada', 'Saída', 'Prestados', 'Tomados')
+
+
+def _nome(texto):
+    t = re.sub(r'[\\/:*?"<>|\s]+', '-', str(texto or '').strip()).strip('-.')
+    return t or 'sem-nome'
+
+
+def _identificar(pasta):
+    """(ano, mês, direção, tipo) a partir do caminho .../<Ano>/<MM - Mês>/<Direção>/<Tipo>; None se a pasta não segue o padrão."""
+    p = Path(pasta); partes = p.parts
+    if len(partes) < 4: return None
+    tipo, direcao, mes_nome, ano = partes[-1], partes[-2], partes[-3], partes[-4]
+    if tipo not in TIPOS or direcao not in DIRECOES: return None
+    m = re.match(r'(\d{2})\b', mes_nome)
+    mes = m.group(1) if m else '00'
+    ano = ano if re.fullmatch(r'\d{4}', ano) else 'Sem-data'
+    return ano, mes, direcao, tipo
+
+
+def nome_do_zip(cnpj, ano, mes, tipo, direcao):
+    digitos = re.sub(r'\D', '', str(cnpj or '')) or 'sem-cnpj'
+    return f"{digitos}_{ano}-{mes}_{_nome(tipo)}_{_nome(direcao)}.zip"
+
+
+def _chave_do_arquivo(nome):
+    m = re.search(r'(\d{44,50})', nome)
+    return m.group(1) if m else ''
+
+
+def montar_zips(arquivos_salvos, cnpj, eventos_fn=None):
+    """Cria/atualiza os ZIPs das pastas onde foram salvos XMLs. `arquivos_salvos`: caminhos devolvidos pelo salvamento.
+    `eventos_fn(cnpj, chaves) -> [(nome_do_arquivo, bytes)]` (opcional) devolve os eventos de cancelamento das notas.
+    Devolve {'criados', 'atualizados', 'iguais', 'erros': [..], 'zips': [..]}."""
+    res = {'criados': 0, 'atualizados': 0, 'iguais': 0, 'erros': [], 'zips': []}
+    pastas = sorted({str(Path(p).parent) for p in (arquivos_salvos or []) if str(p).lower().endswith('.xml')})
+    for pasta in pastas:
+        try:
+            ident = _identificar(pasta)
+            if not ident:
+                continue
+            ano, mes, direcao, tipo = ident
+            xmls = sorted(f for f in Path(pasta).glob('*.xml') if f.is_file())
+            if not xmls:
+                continue
+            chaves = sorted({c for c in (_chave_do_arquivo(f.name) for f in xmls) if c})
+            eventos = []
+            if eventos_fn and chaves:
+                try: eventos = list(eventos_fn(cnpj, chaves) or [])
+                except Exception: eventos = []
+            assinatura = hashlib.sha256()
+            for f in xmls:
+                assinatura.update(f.name.encode('utf-8')); assinatura.update(str(f.stat().st_size).encode())
+            for nome, dados in eventos:
+                assinatura.update(b'E' + nome.encode('utf-8')); assinatura.update(hashlib.sha256(dados).digest())
+            marca = ('exato:' + assinatura.hexdigest()).encode('ascii')
+            destino = Path(pasta) / nome_do_zip(cnpj, ano, mes, tipo, direcao)
+            existia = destino.exists()
+            if existia:
+                try:
+                    with zipfile.ZipFile(destino) as z:
+                        if z.comment == marca:
+                            res['iguais'] += 1; res['zips'].append(str(destino)); continue
+                except zipfile.BadZipFile:
+                    pass                       # ZIP danificado: refaz
+            fd, tmp = tempfile.mkstemp(prefix='.' + destino.name + '.', suffix='.tmp', dir=str(pasta)); os.close(fd)
+            try:
+                with zipfile.ZipFile(tmp, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=6) as z:
+                    usados = set()
+                    for f in xmls:
+                        z.write(f, f.name); usados.add(f.name)
+                    for nome, dados in eventos:
+                        n = nome if nome not in usados else f'evento_{len(usados)}_{nome}'
+                        z.writestr(n, dados); usados.add(n)
+                    z.comment = marca
+                os.replace(tmp, destino)
+            finally:
+                try: os.remove(tmp)
+                except OSError: pass
+            res['atualizados' if existia else 'criados'] += 1; res['zips'].append(str(destino))
+        except Exception as exc:
+            res['erros'].append(f'{pasta}: {str(exc)[:120]}')
+    return res
