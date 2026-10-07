@@ -1,0 +1,29 @@
+V174 — FECHAMENTO DO MÊS NO REPOSITÓRIO E ZIP DE TODOS OS DOCUMENTOS
+
+PEDIDOS DO USUÁRIO
+1. ZIP com todo tipo de documento (NF-e, NFC-e, CT-e e NFS-e), inclusive dos meses que já estavam salvos.
+2. O Exato entender sozinho quando um mês não recebe mais nenhuma nota e, nesse momento, gerar no Repositório o PDF do relatório mensal ("fechamento do mês").
+3. Os ZIPs também no Repositório, mas só quando o mês fecha.
+
+DEFINIÇÕES ESCOLHIDAS (o usuário não respondeu; ficam ajustáveis)
+- Mês fechado = o mês já terminou; a busca já passou do fim dele; nenhuma nota nova chegou há 5 dias; tudo do mês já está copiado no servidor. Config `fechamento` = {ativo: True, dias: 5}.
+- Arquivos na pasta `<Repositório>\<CNPJ> - <Empresa>\<Ano>\<Mês>\Fechamento\` (separados dos XMLs, que continuam contando como antes).
+- NF-e/NFC-e/CT-e: relatório no mesmo estilo do de NFS-e, sem nome de cliente/fornecedor (resumo por tipo e movimentação + lista com número, série, emissão, chave, valor e situação).
+
+O QUE FOI FEITO
+1. ZIP de tudo: teste novo cobre as quatro famílias no mesmo salvamento (a V168 já gerava; agora está garantido). Novo `exato_zip_importacao.gerar_todos(raiz)` e botão "Gerar ZIPs dos meses já salvos..." no Repositório: percorre a pasta dos clientes, cria o ZIP de cada mês que não tinha (CNPJ vem do nome da pasta da empresa), não refaz ZIP igual, mostra progresso e um aviso no fim.
+2. Fechamento automático (`exato_fechamento.py`, sem Tkinter; `exato_fechamento_pdf.py` para o PDF): roda em segundo plano (fila `_repo_post`), no máximo a cada 25 min, só com a cópia automática ligada e sem busca rodando, até 25 meses por rodada, um único aviso no fim ("Repositório: N mês(es) fechado(s) de M empresa(s)."). Gera `Fechamento AAAA-MM.pdf`, `Fechamento AAAA-MM - NFS-e.pdf` (relatório de NFS-e com alíquota/ISS/retido), os ZIPs `<CNPJ>_<AAAA-MM>_<Tipo>_<Movimentação>.zip` e `<CNPJ>_<AAAA-MM>_Eventos-<Tipo>.zip` (feitos a partir do banco) e o marcador `.fechamento.json` (assinatura = notas|bytes|canceladas|eventos, quem fechou, quando, histórico de revisões).
+3. Nota atrasada depois do fechamento: "Fechamento revisado" — novos arquivos com `(revisado AAAA-MM-DD)` ao lado dos antigos (nunca sobrescreve; nome repetido ganha (2), (3)...), marcador com revisão e histórico, um aviso.
+4. Vários computadores: só um fecha cada mês (arquivo `.fechando` criado com exclusividade; reserva esquecida há mais de 30 min é assumida); quem chega depois vê o marcador igual e só confere. Memória local `fechamento_estado` evita voltar ao servidor.
+5. Tela Repositório: cartão "Fechamento do mês e ZIPs" (caixa "Fechar os meses sozinho", situação, "Fechar agora" = ignora os 5 dias, "Gerar ZIPs dos meses já salvos..."); etiqueta "Mês fechado" (e "· revisado Nx") na tabela; filtros "Só meses fechados/abertos"; o índice do servidor passou a guardar `fechado` e `revisoes` por empresa/mês (`indice_fechamentos`); arquivos do Fechamento não contam como XML.
+
+REVISÃO FEITA NESTA VERSÃO (regra do usuário)
+- Releitura do diff; testes novos: test_v174_fechamento (candidatos, 5 dias, "Fechar agora", PDFs/ZIPs/marcador, repetição sem refazer, reserva ocupada/esquecida, revisão sem sobrescrever, índice, servidor fora do ar, ZIP retroativo), test_v174_fechamento_ui (cartão, automático em segundo plano, busca em andamento, desligado, etiqueta/filtros, revisão com um aviso, ZIPs antigos); ampliado test_v174_zip_importacao (quatro famílias). Tornado robusto o teste de índice (esperava a tela atualizar).
+- Armadilhas: nada de Tk fora da tela (tudo por `_repo_post`); arquivos gravados por temporário + troca (nunca pela metade); caminhos de rede longos por `repo._longo`; PDF sem página em branco e título de seção sem ficar sozinho no fim da página; coluna "Situação" alargada para caber duas etiquetas.
+- Capturas 1366x650 e 900x650 (claro e escuro), fuzz de roda, núcleos 13/13 e ativos 31/31 iguais à V145 (nenhum tocado; `save_documents_organized` intacto).
+- Observação do ambiente: test_v174_nfse_portal (navegador de verdade) trava neste ambiente; conferir no GitHub Actions.
+
+A CONFERIR NO WINDOWS
+- Clicar em "Fechar agora" no Repositório com a pasta do servidor real: conferir a pasta Fechamento de um mês e o PDF.
+- Se 5 dias for pouco/muito, avisar (fica em config `fechamento.dias`).
+- "Gerar ZIPs dos meses já salvos..." na pasta dos clientes.

@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V174
+
+Fechamento do mês no Repositório (relatório em PDF e ZIPs gerados sozinhos quando o mês para de receber notas) e ZIP de todos os tipos de documento, inclusive dos meses já salvos. Nenhuma regra fiscal existente foi alterada.
