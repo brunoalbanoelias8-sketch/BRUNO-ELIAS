@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V178
+
+Relatório didático do motivo de a busca não ter acontecido (Empresas > Situação da busca), nota cancelada exportada junto com o XML do cancelamento (pasta Eventos e ZIP), data da última nota e leitura mais clara na Situação da busca. Nenhuma regra fiscal existente foi alterada.
