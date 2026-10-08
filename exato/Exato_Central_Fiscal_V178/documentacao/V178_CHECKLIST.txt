@@ -1,4 +1,4 @@
-V177 — CHECKLIST
+V178 — CHECKLIST
 [x] py_compile exato_central_fiscal.py
 [x] 11 telas abrem sem erro (test_v146_theme_ui)
 [x] Topo acompanha a navegação
@@ -114,3 +114,6 @@ V177 — CHECKLIST
 [x] Relatório didático do porquê de a busca não acontecer (selo, janela Por que?, PDF por empresa e geral)
 [x] Cancelamentos: evento ao lado da nota (pasta Eventos) e no ZIP; evento nunca vira nota; portal lê a situação Cancelada
 [x] Situação da busca: data da última nota, aviso de leitura, cache da última leitura
+[x] Rolagem sem rastro: Carteira e Situação da busca desenhadas no quadro; checkup de todas as telas (teste automático)
+[x] Atualização automática sem travar a tela (não recarrega a empresa, só guarda o que falta, espera o uso)
+[x] Busca compartilhada: ponto de continuação e cobertura no servidor; Trazer do servidor

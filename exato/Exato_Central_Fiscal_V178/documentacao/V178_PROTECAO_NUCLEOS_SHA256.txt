@@ -1,6 +1,6 @@
-V177 — PROTEÇÃO DOS 13 NÚCLEOS FISCAIS
+V178 — PROTEÇÃO DOS 13 NÚCLEOS FISCAIS
 
-Comparação estrutural entre V145 e V177 por AST (ast.dump sem atributos de localização, SHA-256).
+Comparação estrutural entre V145 e V178 por AST (ast.dump sem atributos de localização, SHA-256).
 
 1. _audit_build_rows | 3aa9c49b6b730da4166a3813e9545311357d21f5e12e663d8afd38869e164d8f | SAME
 2. _audit_compare_pair | a5e7949465c3705e97389089d0862b7c508bb498990fa273648a6520f90c58cf | SAME

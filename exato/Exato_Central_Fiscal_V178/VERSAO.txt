@@ -1,4 +1,4 @@
 Exato Central Fiscal
 Versão V178
 
-Relatório didático do motivo de a busca não ter acontecido (Empresas > Situação da busca), nota cancelada exportada junto com o XML do cancelamento (pasta Eventos e ZIP), data da última nota e leitura mais clara na Situação da busca. Nenhuma regra fiscal existente foi alterada.
+Rolagem sem rastro nas tabelas de Empresas, atualização automática mais leve (a tela não trava mais) e busca compartilhada entre os computadores (nenhum computador busca de novo o que outro já buscou; Trazer do servidor). Nenhuma regra fiscal existente foi alterada.

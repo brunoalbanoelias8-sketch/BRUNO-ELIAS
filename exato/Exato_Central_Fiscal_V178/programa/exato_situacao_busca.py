@@ -74,13 +74,18 @@ def _celula(familia, ate, notas, hoje, atraso, ultima=None):
     return dict(base, dias=dias, estado='em_dia', texto='Em dia', detalhe=com_notas + f'\nbuscado até {quando}')
 
 
-def linhas(db_path, config, indice_repo=None, hoje=None, atraso=ATRASO_DIAS, ocorrencias=None, diagnostico=None):
+def linhas(db_path, config, indice_repo=None, hoje=None, atraso=ATRASO_DIAS, ocorrencias=None, diagnostico=None, compartilhada=None):
     """[{'cnpj','nome','celulas': {familia: célula}, 'resumo': 'em_dia' | 'atraso' | 'nunca', 'pendentes': [famílias]}] por empresa.
     `ocorrencias`: {(cnpj, tipo): última ocorrência} de `exato_busca_motivos.ultimas`; `diagnostico`: {cnpj: {'xml': código, 'nfse': código}} (causas já
     conhecidas pela configuração). Quando um tipo está pendente, a célula traz `causa` (explicação em português) e o detalhe mostra o título dela."""
     hoje = hoje or date.today(); banco = _banco(db_path); saida = []
     for cnpj, nome in _empresas(db_path):
         regs = {f: cobertura.do_registro(config, cnpj, f) for f, _ in TIPOS}
+        if compartilhada:          # V178: o que outro computador já buscou também conta
+            import exato_busca_compartilhada as comp
+            for f, _ in TIPOS:
+                outro = comp.cobertura_compartilhada(compartilhada, cnpj, f)
+                if outro and (regs[f] is None or outro > regs[f]): regs[f] = outro
         ates = {}
         for f, _ in TIPOS:
             ates[f] = regs[f] or banco.get((cnpj, f), (None, 0, None))[0]

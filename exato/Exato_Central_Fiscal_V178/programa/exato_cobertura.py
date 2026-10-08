@@ -66,11 +66,17 @@ def do_repositorio(indice, cnpj):
     return date(ano, mes, calendar.monthrange(ano, mes)[1]), sum(n for _, n in meses)
 
 
-def situacao(db_path, config, cnpj, familia, indice_repo=None, hoje=None):
+def situacao(db_path, config, cnpj, familia, indice_repo=None, hoje=None, compartilhada=None):
     """{'ate': date|None, 'fonte': 'busca'|'banco'|'repositorio'|None, 'notas': n, 'ultima_nota': date|None, 'inicio': date|None}.
     `inicio` = onde uma busca por período deve recomeçar (até - margem). Nunca depois de hoje."""
     hoje = hoje or date.today()
     reg = do_registro(config, cnpj, familia)
+    try:          # V178: o que OUTRO computador já buscou (arquivo compartilhado no servidor) também vale
+        import exato_busca_compartilhada as comp
+        outro = comp.cobertura_compartilhada(compartilhada, cnpj, familia) if compartilhada else None
+    except Exception:
+        outro = None
+    if outro and (reg is None or outro > reg): reg = outro
     ate_b, notas, ultima = do_banco(db_path, cnpj, familia)
     ate = fonte = None
     if reg: ate, fonte = reg, 'busca'

@@ -1,11 +1,11 @@
-PROMPT DE CONTINUIDADE — EXATO CENTRAL FISCAL V177
+PROMPT DE CONTINUIDADE — EXATO CENTRAL FISCAL V178
 
 ESTADO ATUAL
-- V177 evolui a V156. Veja docs/V177_NOTAS.txt. Nenhuma regra fiscal protegida foi alterada (13/13 núcleos e 31/31 ativos iguais à V145).
+- V178 evolui a V156. Veja docs/V178_NOTAS.txt. Nenhuma regra fiscal protegida foi alterada (13/13 núcleos e 31/31 ativos iguais à V145).
 - O projeto é conduzido no Claude. Código no GitHub: brunoalbanoelias8-sketch/BRUNO-ELIAS, pasta exato/.
 
 REGRA DE VERSÃO (pedido do usuário)
-- TODO pacote novo entregue ao usuário recebe um número de versão novo (V177, V178...): pasta, APP_VERSION, .bat, VERSAO.txt, README, NOTAS, CONTINUIDADE, CHECKLIST e proteção dos núcleos. Nunca reenviar um ZIP diferente com o mesmo número.
+- TODO pacote novo entregue ao usuário recebe um número de versão novo (V178, V179...): pasta, APP_VERSION, .bat, VERSAO.txt, README, NOTAS, CONTINUIDADE, CHECKLIST e proteção dos núcleos. Nunca reenviar um ZIP diferente com o mesmo número.
 
 REGRAS QUE CONTINUAM VALENDO
 - Não quebrar funções validadas.
@@ -114,3 +114,5 @@ V175: `monthly_summary` devolve também `prest_iss_retido` e `tom_iss_retido`; o
 V176: `exato_situacao_busca.py` (linhas/totais/filtrar/cobertura_empresa; ATRASO_DIAS=3; grupo XML nfe+nfce+cte compartilha cobertura) + `App._sit_*` (aba em Empresas, botão = `_auto_round_start(manual=True, only=cnpjs)`); fechamento: `meses`/`motivo`/`motivos`/`candidatos(coberto=)`, `fechar_pendentes(limite=None, progresso=)`, `repo.marcar_fechados`, `_fechamento_mapa`, `_repo_indice_repetir`, coluna "Por que ainda não fechou". REGRA: cobertura de busca de um tipo do grupo XML nunca é medida pela última nota daquele tipo.
 
 V177: `exato_busca_motivos.py` (CAUSAS em português, classificar/explicar/registrar/ultimas/historico/diagnosticar/gerar_pdf; tabela `busca_ocorrencias`); `App._ocorrencia` gravada em `_finish_sync_all`, rodada automática, `_nfse_run_all`, `_nfse_run_portal`; Situação da busca: `ocorrencias=`/`diagnostico=` em `linhas`, `itens_relatorio`, `_sit_porque`, `_sit_pdf`, `_sit_indicador`; datas da última nota. Cancelamentos: `zip_mod.gravar_eventos(_pasta)` (subpasta `Eventos`, chamada por `zip_importacao_apos_salvar` antes de checar o ZIP), `_zip_eventos` com chave no nome, `_sem_eventos` em `save_documents_any` e na busca automática, `exato_nfse_portal.parse_situacoes` + `db_mark_nfse_cancelled` + `db_canceladas_sem_evento`; `gerar_todos(resolver_cnpj=_cnpj_pela_pasta)`. REGRAS: nota cancelada vai SEMPRE com o evento; nunca fabricar XML de evento; evento nunca é gravado como nota.
+
+V178: tabelas da Carteira e da Situação da busca DESENHADAS no Canvas (`_company_desenhar`, `_sit_desenhar`, `_CARTEIRA_LINHA`, `_SIT_LINHA`); rodada automática silenciosa (`_auto_round_active` pula cargas da tela, `db_unexported_payload`, `_usuario_ocupado`/`_marcar_uso`, `setswitchinterval`); `exato_busca_compartilhada.py` (`publicar`/`ler`/`adotar`/`importar`, arquivo `.indice/busca.json`) + `App._compartilhada_*`, `_repo_trazer`; `exato_cobertura.situacao(compartilhada=)`. REGRAS: nada de tabela rolante com um componente por célula; tela só pela fila `_repo_post` quando vem de linha de trabalho.

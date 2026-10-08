@@ -46,6 +46,7 @@ import exato_zip_importacao as zip_mod
 import exato_fechamento as fechamento_mod
 import exato_situacao_busca as situacao_mod
 import exato_busca_motivos as motivos_mod
+import exato_busca_compartilhada as compart_mod
 import exato_boxe as boxe_mod
 import exato_cobertura as cobertura_mod
 import exato_cobertura as cobertura_mod
@@ -3339,6 +3340,23 @@ def db_filter_unexported(documents, destination_root=''):
     ids=[_payload_doc_id(d) for d in documents]
     exported=db_exported_status(ids,destination_root)
     return [d for d,doc_id in zip(documents,ids) if not exported.get(doc_id)]
+
+
+def db_unexported_payload(cnpj, destination_root, limit=200000):
+    """V178: só os documentos da empresa que AINDA NÃO foram salvos nessa pasta (uma consulta com junção; sem carregar a empresa inteira nem passar
+    milhares de ids para o banco). Mesmo formato de `db_load_documents_as_payload` (XML sob demanda)."""
+    init_database(); digits = re.sub(r'\D', '', str(cnpj or '')); root = _normalized_export_root(destination_root)
+    conn = sqlite3.connect(DB_PATH, timeout=30); conn.row_factory = sqlite3.Row
+    try:
+        rows = conn.execute(
+            """SELECT d.doc_id,d.cnpj,d.family,d.doc_type,d.direction,d.number,d.series,d.issued_at,d.value,d.status,d.access_key,d.source_nsu,COALESCE(c.name,d.cnpj) AS company_name
+               FROM documents d LEFT JOIN document_exports e ON e.doc_id=d.doc_id AND e.destination_root=? LEFT JOIN companies c ON c.cnpj=d.cnpj
+               WHERE d.cnpj=? AND e.doc_id IS NULL AND COALESCE(d.status,'')<>'Evento' AND d.family<>'nfse' LIMIT ?""", (root, digits, int(limit))).fetchall()
+    finally:
+        conn.close()
+    return [LazyXmlRow({'doc_id': r['doc_id'], 'cnpj': r['cnpj'], 'family': r['family'], 'tipo': r['doc_type'], 'doc_type': r['doc_type'], 'chave': r['access_key'] or '',
+                        'nsu': r['source_nsu'] or '', 'direcao': r['direction'] or '', 'numero': r['number'] or '', 'serie': r['series'] or '', 'data': r['issued_at'] or '',
+                        'valor': r['value'] or '0.00', 'empresa': r['company_name'] or '', 'status': r['status'] or '', 'exportado': False, 'ultima_exportacao': ''}) for r in rows]
 
 
 def db_mark_documents_exported(documents, destination_root, exported_path=''):
@@ -8682,6 +8700,9 @@ def run_local_audit(cnpj='', date_from='', date_to=''):
 _SIT_LINHA = 76          # altura de cada empresa na tabela da Situação da busca (pixels)
 
 
+_CARTEIRA_LINHA = 38          # altura de cada empresa na tabela da Carteira (pixels)
+
+
 class App(tk.Tk):
     def __init__(self, current_user=None):
         super().__init__()
@@ -9106,6 +9127,9 @@ class App(tk.Tk):
         self.workspace=tk.Frame(shell,bg=BG); self.workspace.pack(side='left',fill='both',expand=True)
         self.workspace_canvas=tk.Canvas(self.workspace,bg=BG,highlightthickness=0,bd=0); self.workspace_scrollbar=ttk.Scrollbar(self.workspace,orient='vertical',command=self.workspace_canvas.yview); self.workspace_canvas.configure(yscrollcommand=self.workspace_scrollbar.set); self.workspace_scrollbar.pack(side='right',fill='y'); self.workspace_canvas.pack(side='left',fill='both',expand=True); self.workspace_hscroll=ttk.Scrollbar(self.workspace,orient='horizontal',command=self.workspace_canvas.xview); self.workspace_canvas.configure(xscrollcommand=self.workspace_hscroll.set)
         self.page_host=tk.Frame(self.workspace_canvas,bg=BG); self._workspace_window=self.workspace_canvas.create_window((0,0),window=self.page_host,anchor='nw'); self.page_host.bind('<Configure>',self._on_workspace_host_configure); self.workspace_canvas.bind('<Configure>',self._on_workspace_canvas_configure); self.workspace_canvas.bind('<Enter>',self._on_workspace_enter); self.workspace_canvas.bind('<Leave>',self._on_workspace_leave); self._workspace_mousewheel_bound=False; self._wheel=exato_ui.WheelRouter(self,self.workspace_canvas,after_inner=self._tree_hover_refresh); self.after(500,self._workspace_watch); self.after(7000,self._nfse_auto_on_open); self.after(9000,self._assistant_startup_briefing); self.after(25000,self._pilot_tick); self._repo_state={'rodando':False,'acessivel':None,'restantes':None,'novos':0,'existentes':0,'conferindo':False,'erro':'','problemas':[],'backup':''}; self._repo_indice=None; self._repo_indice_origem=''; self._repo_indice_rodando=False; self._repo_indice_ultimo=0.0; self._repo_indice_sujo=True; self._repo_indice_atualizou=False; self._repo_cancel=threading.Event(); self._repo_inbox=collections.deque(); self._fechamento_state={'rodando':False,'ultimo':0.0,'resultado':'','zips':False}; self._repo_fech={}; self.after(300,self._repo_pump); self.after(20000,self._repo_tick); self._auto_round_active=False; self.after(60000,self._auto_round_boot); self.after(3500,self._v145_start); self._boxe_state={'rodando':False,'erro':''}; self.after(30000,self._boxe_tick)
+        self._ultimo_uso=0.0; self.bind_all('<Motion>',self._marcar_uso,add='+'); self.bind_all('<Key>',self._marcar_uso,add='+'); self.bind_all('<Button-1>',self._marcar_uso,add='+')          # V178: a rodada automática espera enquanto a pessoa usa o Exato
+        try: sys.setswitchinterval(0.002)          # V178: as linhas de trabalho passam a vez para a tela com mais frequência (padrão 5 ms)
+        except Exception: pass
         self._install_navigation_shortcuts()
         self.cert_frame=None; self._show_certificate_list(); self.after(1200,self._schedule_pending_badge)
 
@@ -10522,6 +10546,98 @@ class App(tk.Tk):
         try: self.after(300, self._repo_pump)
         except Exception: pass
 
+    # ------------------------------------------------------------ V178: busca compartilhada (nenhum computador busca de novo o que outro já buscou)
+    def _compartilhada_base(self):
+        return str(self._repo_cfg().get('pasta') or '').strip()
+
+    def _compartilhada_atualizar(self, forcar=False):
+        """Lê, em segundo plano, o arquivo compartilhado do servidor (nunca dentro de uma busca ou da tela). Guarda em memória."""
+        base = self._compartilhada_base()
+        if not base or getattr(self, '_busca_comp_lendo', False): return
+        if not forcar and time.monotonic() - getattr(self, '_busca_comp_em', -9999) < 120: return
+        self._busca_comp_lendo = True; self._busca_comp_em = time.monotonic()
+        def work():
+            dados = None
+            try: dados = compart_mod.ler(base)
+            except Exception: pass
+            def fim():
+                self._busca_comp_lendo = False
+                if dados is not None: self._busca_comp = dados
+            self._repo_post(fim)
+        threading.Thread(target=work, daemon=True, name='busca-compartilhada').start()
+
+    def _compartilhada_publicar(self):
+        """Publica no servidor até onde este computador já buscou (junta com o que já está lá). Segundo plano, no máximo a cada 15 s."""
+        base = self._compartilhada_base()
+        if not base or time.monotonic() - getattr(self, '_busca_comp_pub_em', -9999) < 15: return
+        self._busca_comp_pub_em = time.monotonic()
+        estados = {k: int((v or {}).get('last_saved_nsu') or 0) for k, v in (self.config_data.get('sync_state') or {}).items() if isinstance(v, dict)}
+        cobert = {}
+        for cnpj, fams in (self.config_data.get('busca_cobertura') or {}).items():
+            for fam, item in (fams or {}).items():
+                if isinstance(item, dict) and item.get('ate'): cobert.setdefault(cnpj, {})[fam] = item['ate']
+        def work():
+            try:
+                if compart_mod.publicar(base, estados, cobert): self._busca_comp_em = 0
+            except Exception:
+                pass
+        threading.Thread(target=work, daemon=True, name='busca-publicar').start()
+
+    def _compartilhada_aplicar(self, cnpj, so=None):
+        """Antes de buscar: se outro computador já foi mais longe que este (por mais que a folga), este começa do ponto dele. Devolve quantos fluxos adotou."""
+        dados = getattr(self, '_busca_comp', None)
+        if not dados: return 0
+        cnpj = re.sub(r'\D', '', str(cnpj or '')); adotados = 0
+        try:
+            estado = self.config_data.setdefault('sync_state', {}); boot = self.config_data.setdefault('v028_bootstrap', {})
+            for chave in list((dados.get('nsu') or {}).keys()):
+                if not chave.startswith(cnpj + ':') or (so and chave != f'{cnpj}:{so}'): continue
+                if getattr(self, 'hom_var', None) is not None and chave.split(':', 1)[1] != 'nfse' and bool(self.hom_var.get()): continue          # homologação tem numeração própria
+                local = int((estado.get(chave) or {}).get('last_saved_nsu') or 0)
+                nsu, origem = compart_mod.adotar(dados, local, chave, NSU_FOLGA)
+                if origem != 'servidor': continue
+                item = dict(estado.get(chave) or {}); item.update({'last_saved_nsu': nsu, 'adotado_do_servidor': datetime.now().isoformat(timespec='seconds'), 'updated_at': datetime.now().isoformat(timespec='seconds')})
+                estado[chave] = item; boot[chave] = True; adotados += 1
+            if adotados:
+                save_config(self.config_data)
+                self._repo_post(lambda: self._toast('Outro computador do escritório já buscou além deste ponto: o Exato continua de lá, sem baixar tudo de novo. Para ter essas notas aqui, use "Trazer do servidor" no Repositório.', 'info', 9000))          # (pode vir de linha de trabalho: a tela só pela fila)
+        except Exception:
+            log_exception('Busca compartilhada (aplicar)', sys.exc_info())
+        return adotados
+
+    def _repo_trazer(self):
+        """Traz do Repositório (servidor) para o banco deste computador os XMLs que ele ainda não tem, sem baixar nada da SEFAZ."""
+        base = self._compartilhada_base()
+        if not base: messagebox.showinfo('Trazer do servidor', 'Escolha primeiro a pasta do servidor (Alterar pasta...).', parent=self); return
+        if self._busca_em_andamento() or getattr(self, '_trazendo', False):
+            messagebox.showinfo('Trazer do servidor', 'Há uma busca ou uma importação em andamento. Tente de novo quando terminar.', parent=self); return
+        if not messagebox.askyesno('Trazer do servidor', 'O Exato vai ler os XMLs guardados no servidor e colocar neste computador só os que ainda não estão aqui. Nada é baixado da SEFAZ e nada é apagado.\n\nPode demorar em carteiras grandes, e você pode continuar usando o Exato. Continuar?', parent=self): return
+        self._trazendo = True; self.set_status('Trazendo do servidor...')
+        def conhecidos(cnpj):
+            conn = sqlite3.connect(DB_PATH, timeout=30)
+            try: return {r[0] for r in conn.execute("SELECT access_key FROM documents WHERE cnpj=? AND COALESCE(status,'')<>'Evento'", (cnpj,)).fetchall() if r[0]}
+            finally: conn.close()
+        def gravar(cnpj, familia, xmls):
+            if familia == 'nfse': db_upsert_nfse_items(cnpj, [{'xml': x, 'chave': '', 'nsu': ''} for x in xmls])
+            else: db_upsert_documents(cnpj, [{'xml': x, 'family': familia} for x in xmls])
+        def work():
+            res = {'lidos': 0, 'importados': 0, 'ja_tinha': 0, 'erros': 0}
+            try:
+                init_database()
+                res = compart_mod.importar(base, conhecidos, gravar, cancelar=lambda: False,
+                                           progresso=lambda r: self._repo_post(lambda r=r: self.set_status(f"Trazendo do servidor: {r['importados']} nota(s) trazida(s)...")))
+            except Exception:
+                log_exception('Trazer do servidor', sys.exc_info())
+            def fim():
+                self._trazendo = False
+                texto = f"Trouxe {res['importados']} documento(s) do servidor; {res['ja_tinha']} já estavam neste computador." + (f" {res['erros']} não foram lidos." if res['erros'] else '')
+                self.set_status(texto)
+                try: self._toast(texto, 'ok' if not res['erros'] else 'warn', 8000)
+                except Exception: pass
+                if res['importados']: self._repo_indice_sujo = True
+            self._repo_post(fim)
+        threading.Thread(target=work, daemon=True, name='trazer-do-servidor').start()
+
     # ------------------------------------------------------------ V177: por que a busca não aconteceu (relatório didático)
     def _ocorrencia(self, cnpj, tipos, codigo=None, texto='', cstat='', origem=''):
         """Anota o resultado de uma tentativa de busca (certo ou com a causa explicada). Nunca atrapalha a busca."""
@@ -10551,7 +10667,7 @@ class App(tk.Tk):
     # ------------------------------------------------------------ V173: busca inteligente (só o que ainda não foi puxado)
     def _busca_info(self, cnpj, familia):
         """Até que dia a empresa já tem notas daquele tipo (registro da busca, arquivo deste computador ou repositório)."""
-        try: return cobertura_mod.situacao(str(DB_PATH), self.config_data, cnpj, familia, getattr(self, '_repo_indice', None))
+        try: return cobertura_mod.situacao(str(DB_PATH), self.config_data, cnpj, familia, getattr(self, '_repo_indice', None), compartilhada=getattr(self, '_busca_comp', None))
         except Exception: return {'ate': None, 'fonte': None, 'notas': 0, 'ultima_nota': None, 'inicio': None}
 
     def _busca_registrar(self, cnpj, familias, ate=None, nsu=None):
@@ -10561,6 +10677,7 @@ class App(tk.Tk):
             save_config(self.config_data)
         except Exception:
             log_exception('Busca inteligente (registrar)', sys.exc_info())
+        self._compartilhada_publicar()
 
     def _busca_silenciosa(self):
         return bool(getattr(self, '_auto_round_active', False) or getattr(self, '_multi_company_run_active', False))
@@ -10633,6 +10750,8 @@ class App(tk.Tk):
             log_exception('Repositório (agendador)', sys.exc_info())
         try: self._fechamento_start()
         except Exception: log_exception('Fechamento do mês (agendador)', sys.exc_info())
+        try: self._compartilhada_atualizar()
+        except Exception: pass
         try: self.after(45000, self._repo_tick)
         except Exception: pass
 
@@ -10875,7 +10994,8 @@ class App(tk.Tk):
         ttk.Checkbutton(acoes, text='Copiar automaticamente', variable=self.repo_auto_var, command=self._repo_toggle_auto).pack(side='left', padx=(0, 10))
         ttk.Button(acoes, text='Copiar agora', style='Primary.TButton', command=lambda: self._repo_start(manual=True)).pack(side='left', padx=(0, 8))
         ttk.Button(acoes, text='Alterar pasta...', style='Secondary.TButton', command=self._repo_choose_folder).pack(side='left', padx=(0, 8))
-        ttk.Button(acoes, text='Abrir pasta', style='Secondary.TButton', command=self._repo_open_folder).pack(side='left')
+        ttk.Button(acoes, text='Abrir pasta', style='Secondary.TButton', command=self._repo_open_folder).pack(side='left', padx=(0, 8))
+        ttk.Button(acoes, text='Trazer do servidor...', style='Secondary.TButton', command=self._repo_trazer).pack(side='left')
         make_flow(acoes)
         # V174: fechamento do mês e ZIPs
         fech = exato_ui.ModernCard(f, fill=WHITE, border=BORDER); fech.pack(fill='x', padx=20, pady=(0, 8))
@@ -13204,6 +13324,8 @@ class App(tk.Tk):
             if hasattr(self,'local_archive_save_btn'): self.local_archive_save_btn.config(state='disabled')
             self._refresh_local_archive_status(digits)
             return []
+        if getattr(self, '_auto_round_active', False):          # V178: atualização automática em segundo plano não redesenha a tela de Buscar XML
+            self.last_documents = []; return []
         # Repair stale company names left by previous versions using the documents
         # actually tied to the consulted CNPJ.
         try:
@@ -13719,6 +13841,7 @@ class App(tk.Tk):
         # V025 introduced a new local database. When a legacy NSU exists from V024 but
         # the new database has no documents for that company/family, the first V026 sync
         # must bootstrap from NSU=0; otherwise the Central could incorrectly appear empty.
+        self._compartilhada_aplicar(cnpj)          # V178: se outro computador já foi mais longe, começa do ponto dele
         starts={}
         boot=self.config_data.setdefault('v028_bootstrap', {})
         # Cada fluxo tem seu próprio ponto de continuidade. NF-e e CT-e usam
@@ -13750,8 +13873,10 @@ class App(tk.Tk):
             diagnostic_run_dir = None
         # The local database is persistent across restarts. Keep its documents visible
         # while the Web Services fetch only the incremental novelties.
-        persisted_docs = db_load_documents_as_payload(cnpj, limit=100000)
-        self.last_documents = self._filter_documents_for_capture_view(persisted_docs, capture_df, capture_dt)
+        if getattr(self, '_auto_round_active', False): self.last_documents = []          # V178: sem carregar a empresa inteira na tela durante a rodada automática
+        else:
+            persisted_docs = db_load_documents_as_payload(cnpj, limit=100000)
+            self.last_documents = self._filter_documents_for_capture_view(persisted_docs, capture_df, capture_dt)
         self.sync_running=True; self.sync_cancel_requested=False; self._sync_started_at=datetime.now(); self._sync_run_id=db_start_run(cnpj)
         self._ia_float_set_state('processando','Analisando os documentos... isso pode levar alguns instantes.',3600)
         try: self._ia_emit_event('SYNC_STARTED',family='all',operation='Buscar XML',company=db_get_company_name(cnpj) or cnpj)
@@ -13806,6 +13931,7 @@ class App(tk.Tk):
                     batch_no=int(evt.get('batch') or 0)
                     def refresh_live(f=family,b=batch_no,q=len(docs),st=stream_label):
                         try:
+                            if getattr(self,'_auto_round_active',False): return          # V178: rodada automática não atualiza a tela a cada lote
                             # V173: recarregar a lista inteira da empresa a cada lote parava a tela; no máximo a cada 4 s (o fim da busca atualiza tudo de qualquer jeito)
                             agora_=time.monotonic()
                             if agora_-getattr(self,'_live_refresh_em',0.0)<4.0:
@@ -14193,6 +14319,7 @@ class App(tk.Tk):
                     cobertura_mod.registrar(self.config_data,finished_cnpj,family,nsu=res.get('last_nsu'))          # V173: busca bem-sucedida = cobertura até hoje
                 except Exception: pass
             total_new += int(res.get('new_count') or 0); total_dup += int(res.get('duplicate_count') or 0)
+        self._compartilhada_publicar()          # V178: o que este computador acabou de buscar fica disponível para os outros
         deferred_only=any(bool((r or {}).get('deferred_actor')) for r in results.values()) and not any((not bool((r or {}).get('ok',False))) and not bool((r or {}).get('deferred_actor')) for r in results.values())
         try:
             bad_657=next(((r.get('last_info') or {}) for r in results.values() if str((r.get('last_info') or {}).get('cstat') or '').strip()=='657'),None)
@@ -14223,11 +14350,16 @@ class App(tk.Tk):
             try: db_update_run(self._sync_run_id,status,finished=True,total_found=sum(len((r or {}).get('documents') or []) for r in results.values()),new_count=total_new,duplicate_count=total_dup,error_text=err_text)
             except Exception: pass
         # Never expose the full local archive as the current search result.
+        silencioso_=bool(getattr(self,'_auto_round_active',False))
         try:
-            all_local=db_load_documents_as_payload(finished_cnpj,limit=100000)
+            if silencioso_:      # V178: rodada automática: só o que ainda não foi salvo na pasta dos clientes (nada de recarregar a empresa inteira)
+                st_=getattr(self,'_multi_company_state',None) or {}
+                all_local=db_unexported_payload(finished_cnpj,st_.get('root_folder','')) if (st_.get('save_xml') and st_.get('root_folder')) else []
+            else:
+                all_local=db_load_documents_as_payload(finished_cnpj,limit=100000)
         except Exception:
             all_local=[]
-        self.last_documents=self._filter_documents_for_capture_view(all_local,cdf,cdt)
+        self.last_documents=all_local if silencioso_ else self._filter_documents_for_capture_view(all_local,cdf,cdt)
         # Counts are scoped to the requested period.
         period_counts={f:sum(1 for d in self.last_documents if str(d.get('family') or '').lower()==f) for f in ('nfe','nfce','cte')}
         for family in ('nfe','nfce','cte'):
@@ -15111,7 +15243,7 @@ class App(tk.Tk):
                 oc = motivos_mod.ultimas(str(DB_PATH)); diag = {}
                 for cnpj, _nome in situacao_mod._empresas(str(DB_PATH)):
                     diag[cnpj] = motivos_mod.diagnosticar(dict(base, empresa_tem_cert=cnpj in com_cert, portal_login=self._portal_login_salvo(cnpj)))
-                lista = situacao_mod.linhas(str(DB_PATH), self.config_data, getattr(self, '_repo_indice', None), ocorrencias=oc, diagnostico=diag)
+                lista = situacao_mod.linhas(str(DB_PATH), self.config_data, getattr(self, '_repo_indice', None), ocorrencias=oc, diagnostico=diag, compartilhada=getattr(self, '_busca_comp', None))
             except Exception:
                 log_exception('Situação da busca', sys.exc_info()); erro = 'Não consegui ler a situação das empresas agora. O Exato tenta de novo em instantes.'
             def fim():
@@ -15352,22 +15484,12 @@ class App(tk.Tk):
             return
         self._selected_company_iid = iid
         self._selected_company_cnpj = str(rec.get('cnpj') or '')
-        for row_id, widgets in getattr(self, '_company_row_widgets', {}).items():
-            selected = (row_id == iid)
-            row = widgets.get('row')
-            if row is not None:
-                row.configure(bg='#FFF4F4' if selected else widgets.get('base_bg','#FFFFFF'))
-            for key, child in widgets.items():
-                if key == 'row':
-                    continue
-                try:
-                    if hasattr(child, 'configure'):
-                        # Preserve semantic pill colors; regular cells follow the selected row.
-                        if key in ('update_pill','search_pill'):
-                            continue
-                        child.configure(bg='#FFF4F4' if selected else widgets.get('base_bg','#FFFFFF'))
-                except Exception:
-                    pass
+        try:
+            cv = self.company_table_canvas
+            for row_id, (ret, base) in getattr(self, '_company_rects', {}).items():
+                cv.itemconfigure(ret, fill=exato_ui.tr('#FFF4F4', 'bg') if row_id == iid else base)
+        except Exception:
+            pass
         if double:
             self._use_selected_company()
 
@@ -15448,13 +15570,13 @@ class App(tk.Tk):
         for idx,(key,head,weight) in enumerate(columns):
             self.company_table_header.grid_columnconfigure(idx,weight=max(1,int(weight*100)),uniform='company_cols')
             tk.Label(self.company_table_header,text=head,bg='#F1F5F9',fg=TEXT,font=('Segoe UI Semibold',8),anchor='w' if key=='name' else 'center').grid(row=0,column=idx,sticky='nsew',padx=(9,6),pady=0)
-        self.company_table_canvas=tk.Canvas(table_card,bg=WHITE,highlightthickness=0,bd=0,height=220)
+        tk.Frame(self.company_table_header,width=17,bg='#F1F5F9').grid(row=0,column=len(self._company_col_specs),sticky='ns')          # V178: no lugar da barra de rolagem, o cabeçalho alinha com as colunas
+        # V178: a tabela é DESENHADA no próprio quadro (sem um componente por célula): rolar fica liso e sem rastro no Windows
+        self.company_table_canvas=tk.Canvas(table_card,bg=WHITE,highlightthickness=0,bd=0,height=220,yscrollincrement=_CARTEIRA_LINHA)
         self.company_table_scroll=ttk.Scrollbar(table_card,orient='vertical',command=self.company_table_canvas.yview)
-        self.company_table_body=tk.Frame(self.company_table_canvas,bg=WHITE)
-        self._company_canvas_window=self.company_table_canvas.create_window((0,0),window=self.company_table_body,anchor='nw')
         self.company_table_canvas.configure(yscrollcommand=self.company_table_scroll.set)
-        self.company_table_body.bind('<Configure>',lambda e:self.company_table_canvas.configure(scrollregion=self.company_table_canvas.bbox('all')))
-        self.company_table_canvas.bind('<Configure>',lambda e:self.company_table_canvas.itemconfigure(self._company_canvas_window,width=e.width))
+        self._company_largura=0; self._company_redesenho_job=None
+        self.company_table_canvas.bind('<Configure>',lambda e:self._company_redesenhar_depois())
         self.company_table_scroll.pack(side='right',fill='y')
         self.company_table_canvas.pack(side='left',fill='both',expand=True)
 
@@ -15505,10 +15627,8 @@ class App(tk.Tk):
             self.company_query.set('Pesquisar por nome ou CNPJ...')
 
     def _refresh_companies(self):
-        if not hasattr(self,'company_table_body'):
+        if not hasattr(self,'company_table_canvas'):
             return
-        for child in self.company_table_body.winfo_children():
-            child.destroy()
         self._company_row_records={}
         self._company_row_widgets={}
         self._selected_company_iid=None
@@ -15531,41 +15651,57 @@ class App(tk.Tk):
             self.company_summary_cards['stale'].config(text=f'{counts["Desatualizada"]:,}'.replace(',','.'))
 
         for idx,(r,update_status) in enumerate(visible_rows,1):
-            iid=str(idx); base_bg='#FFFFFF' if idx % 2 else '#FAFBFC'
+            iid=str(idx)
             name=str(r.get('name') or r.get('cnpj') or '').strip()
             cnpj_raw=re.sub(r'\D','',str(r.get('cnpj') or ''))
             docs=f'{int(r.get("documents") or 0):,}'.replace(',','.')
             last=r.get('last_sync') or ''
             last_display=_format_user_date(last[:10]) + (f' {last[11:16]}' if len(last)>=16 else '') if last else 'Nunca'
             search_label=_company_search_status_label(r.get('last_search_status'),r.get('last_search_error'))
-            record={'cnpj':cnpj_raw,'name':name,'values':(name,_format_cnpj(cnpj_raw),docs,last_display,update_status,search_label)}
-            self._company_row_records[iid]=record
+            self._company_row_records[iid]={'cnpj':cnpj_raw,'name':name,'last':bool(last),'values':(name,_format_cnpj(cnpj_raw),docs,last_display,update_status,search_label)}
+        self._company_desenhar()
 
-            row=tk.Frame(self.company_table_body,bg=base_bg,height=38,highlightthickness=0)
-            row.pack(fill='x')
-            row.pack_propagate(False)
-            for cidx,(_,_,weight) in enumerate(self._company_col_specs):
-                row.grid_columnconfigure(cidx,weight=max(1,int(weight*100)),uniform='company_cols_row')
-            name_lbl=self._company_make_cell(row,0,name,anchor='w',font=('Segoe UI',9),bg=base_bg)
-            cnpj_lbl=self._company_make_cell(row,1,_format_cnpj(cnpj_raw),anchor='center',font=('Segoe UI',8),bg=base_bg)
-            docs_lbl=self._company_make_cell(row,2,docs,anchor='center',font=('Segoe UI',9),bg=base_bg)
-            last_lbl=self._company_make_cell(row,3,last_display,anchor='center',font=('Segoe UI',8),fg=TEXT if last else MUTED,bg=base_bg)
-            update_cell=tk.Frame(row,bg=base_bg)
-            update_cell.grid(row=0,column=4,sticky='nsew',padx=3,pady=4)
-            ubg,ufg,utxt=self._company_status_style(update_status)
-            update_pill=self._make_company_pill(update_cell,utxt,ubg,ufg)
-            search_cell=tk.Frame(row,bg=base_bg)
-            search_cell.grid(row=0,column=5,sticky='nsew',padx=3,pady=4)
-            sbg,sfg,stxt=self._company_search_style(search_label)
-            search_pill=self._make_company_pill(search_cell,stxt,sbg,sfg)
-            widgets={'row':row,'name':name_lbl,'cnpj':cnpj_lbl,'docs':docs_lbl,'last':last_lbl,'update_cell':update_cell,'update_pill':update_pill,'search_cell':search_cell,'search_pill':search_pill,'base_bg':base_bg}
-            self._company_row_widgets[iid]=widgets
-            for w in (row,name_lbl,cnpj_lbl,docs_lbl,last_lbl,update_cell,update_pill,search_cell,search_pill):
-                self._company_bind_tree_event(w,iid,False)
-                self._company_bind_tree_event(w,iid,True)
-            tk.Frame(self.company_table_body,bg='#E5E7EB',height=1).pack(fill='x')
+    def _company_redesenhar_depois(self):
+        try:
+            if self._company_redesenho_job: self.after_cancel(self._company_redesenho_job)
+            self._company_redesenho_job=self.after(120,lambda: self._company_desenhar() if abs(self.company_table_canvas.winfo_width()-self._company_largura)>2 else None)
+        except Exception: pass
 
-        self.after_idle(lambda:self.company_table_canvas.configure(scrollregion=self.company_table_canvas.bbox('all')))
+    def _company_desenhar(self):
+        """Desenha a tabela da carteira no próprio quadro (sem um componente por célula): rola liso, sem rastro, com muitas empresas."""
+        cv=self.company_table_canvas; self._company_redesenho_job=None
+        if not cv.winfo_exists(): return
+        import tkinter.font as tkfont
+        tr_=exato_ui.tr; W=max(cv.winfo_width(),600); self._company_largura=cv.winfo_width(); topo=cv.yview()[0]; cv.delete('all')
+        total=sum(w for _,_,w in self._company_col_specs); xs=[0]
+        for _,_,w in self._company_col_specs: xs.append(xs[-1]+W*w/total)
+        f_n=tkfont.Font(family='Segoe UI',size=9); f_p=tkfont.Font(family='Segoe UI',size=8); f_pill=tkfont.Font(family='Segoe UI Semibold',size=8)
+        self._company_rects={}; sel=getattr(self,'_selected_company_iid',None)
+        def curto(texto,fonte,larg):
+            if fonte.measure(texto)<=larg: return texto
+            while texto and fonte.measure(texto+'...')>larg: texto=texto[:-1]
+            return texto.rstrip()+'...'
+        for n,(iid,rec) in enumerate(self._company_row_records.items()):
+            y0=n*_CARTEIRA_LINHA; meio=y0+_CARTEIRA_LINHA/2; tag=f'emp_{iid}'
+            base=tr_('#FFFFFF' if n%2==0 else '#FAFBFC','bg')
+            ret=cv.create_rectangle(0,y0,W,y0+_CARTEIRA_LINHA,fill=tr_('#FFF4F4','bg') if iid==sel else base,outline='',tags=tag); self._company_rects[iid]=(ret,base)
+            cv.create_line(0,y0+_CARTEIRA_LINHA,W,y0+_CARTEIRA_LINHA,fill=tr_('#E5E7EB','bg'),tags=tag)
+            nome,cnpj,docs,ultima,upd,busca=rec['values']
+            cv.create_text(xs[0]+9,meio,text=curto(nome,f_n,xs[1]-xs[0]-18),anchor='w',fill=tr_(TEXT,'fg'),font=f_n,tags=tag)
+            cv.create_text((xs[1]+xs[2])/2,meio,text=cnpj,anchor='center',fill=tr_(TEXT,'fg'),font=f_p,tags=tag)
+            cv.create_text((xs[2]+xs[3])/2,meio,text=docs,anchor='center',fill=tr_(TEXT,'fg'),font=f_n,tags=tag)
+            cv.create_text((xs[3]+xs[4])/2,meio,text=ultima,anchor='center',fill=tr_(TEXT if rec['last'] else MUTED,'fg'),font=f_p,tags=tag)
+            for col,estilo in ((4,self._company_status_style(upd)),(5,self._company_search_style(busca))):
+                bg_p,fg_p,txt=estilo; cx=(xs[col]+xs[col+1])/2
+                t=cv.create_text(cx,meio,text=txt,anchor='center',fill=tr_(fg_p,'fg'),font=f_pill,tags=tag)
+                bx=cv.bbox(t); r_=cv.create_rectangle(bx[0]-8,bx[1]-3,bx[2]+8,bx[3]+3,fill=tr_(bg_p,'bg'),outline='',tags=tag); cv.tag_lower(r_,t)
+            cv.tag_bind(tag,'<Button-1>',lambda e,i=iid:self._company_row_event(i,False)); cv.tag_bind(tag,'<Double-1>',lambda e,i=iid:self._company_row_event(i,True))
+        cv.configure(scrollregion=(0,0,W,max(len(self._company_row_records)*_CARTEIRA_LINHA,1))); cv.yview_moveto(topo)
+
+    def _company_textos(self):
+        """Textos desenhados na tabela (para os testes)."""
+        cv=self.company_table_canvas
+        return [' '.join(cv.itemcget(i,'text').split()) for i in cv.find_all() if cv.type(i)=='text']
 
     def _use_selected_company(self):
         cnpj=re.sub(r'\D','',str(getattr(self,'_selected_company_cnpj','') or ''))
@@ -15845,6 +15981,13 @@ class App(tk.Tk):
         try: self._multi_status_label.config(text=text)
         except Exception: pass          # rodada automática: não há janela da busca automática
 
+    def _marcar_uso(self, event=None):
+        self._ultimo_uso = time.monotonic()
+
+    def _usuario_ocupado(self, segundos=20):
+        """A pessoa mexeu no mouse ou no teclado nos últimos `segundos`?"""
+        return time.monotonic() - getattr(self, '_ultimo_uso', 0.0) < segundos
+
     def _begin_next_multi_company(self):
         state=self._multi_company_state
         if not state or not self._multi_company_run_active: return
@@ -15853,6 +15996,11 @@ class App(tk.Tk):
         idx=int(state.get('index',0)); total=len(state.get('companies') or [])
         if idx>=total:
             self._finish_multi_company_search(); return
+        if state.get('silent') and not (getattr(self,'_auto_round',None) or {}).get('manual') and self._usuario_ocupado():          # V178: a rodada automática espera enquanto a pessoa usa o Exato (no máximo 45 s por empresa)
+            desde=state.setdefault('_pausa_desde',time.monotonic())
+            if time.monotonic()-desde<45:
+                self.set_status('Atualização automática em pausa: você está usando o Exato. Continua sozinha em instantes.'); self.after(3000,self._begin_next_multi_company); return
+        state.pop('_pausa_desde',None)
         row=state['companies'][idx]; cnpj=re.sub(r'\D','',str(row.get('cnpj') or '')); name=str(row.get('name') or cnpj)
         if len(cnpj)!=14:
             state['results'].append({'cnpj':cnpj,'company':name,'status':'Ignorada','reason':'CNPJ inválido'})
@@ -18307,6 +18455,7 @@ class App(tk.Tk):
     def _nfse_cursor(self, cnpj):
         """V173: de onde a busca por certificado continua (NSU). Vale o ponto salvo; se ele sumiu (configuração perdida, banco restaurado) mas o arquivo fiscal já
         tem notas, o próprio arquivo diz (maior NSU guardado, menos uma folga de NSU_FOLGA): o Exato não baixa todo o histórico de novo."""
+        self._compartilhada_aplicar(cnpj, 'nfse')          # V178
         salvo = get_saved_nsu(self.config_data, cnpj, 'nfse')
         if salvo > 0: return salvo
         try: no_banco = int(db_max_source_nsu(cnpj, 'nfse') or 0)

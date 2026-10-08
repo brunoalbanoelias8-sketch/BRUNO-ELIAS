@@ -13,6 +13,11 @@ COMO A PASTA É ORGANIZADA
 - ajuda\ : como instalar o Exato e como configurar a Central
 - Os seus dados NÃO ficam nesta pasta: %LOCALAPPDATA%\Exato\Central Fiscal\Dados (trocar de versão não perde nada).
 
+NOVIDADES DA V178 (ROLAGEM, ATUALIZAÇÃO AUTOMÁTICA MAIS LEVE E BUSCA COMPARTILHADA)
+- As tabelas de Empresas (Carteira e Situação da busca) rolam lisas, sem rastro nem texto sobreposto.
+- A atualização automática não trava mais a tela: não recarrega a empresa inteira, só guarda os XMLs novos na pasta dos clientes e espera enquanto você está usando o Exato.
+- Busca compartilhada: quando um computador termina uma busca, o ponto onde parou fica registrado no servidor. Os outros computadores continuam dali e não baixam tudo de novo. No Repositório, o botão "Trazer do servidor..." coloca neste computador as notas que já estão no servidor, sem baixar nada da SEFAZ.
+
 NOVIDADES DA V177 (POR QUE A BUSCA NÃO ACONTECEU E NOTAS CANCELADAS)
 - Empresas > Situação da busca: quando um tipo (NF-e, NFC-e, CT-e ou NFS-e) não foi buscado, o selo mostra o motivo em português (falta certificado, falta usuário e senha, SEFAZ ou portal com problema...). Clique no selo para ver o que aconteceu, o que fazer e as últimas tentativas; "Relatório em PDF" gera o relatório da empresa ou de todas.
 - Cada selo mostra também a data da última nota e até que dia buscou. A tela avisa "Lendo a situação das empresas..." enquanto carrega.

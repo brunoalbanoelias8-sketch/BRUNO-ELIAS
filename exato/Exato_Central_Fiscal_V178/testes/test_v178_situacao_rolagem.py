@@ -15,7 +15,6 @@ def cnpj_valido(base):
         soma=sum(a*b for a,b in zip(d,pesos)); r=soma%11; d.append(0 if r<2 else 11-r)
     return ''.join(map(str,d))
 cnpjs=[cnpj_valido(10000000+i*7919) for i in range(120)]
-c.close()
 for i,cn in enumerate(cnpjs): m.db_register_company(cn,f'EMPRESA NUMERO {i:03d} DE TESTE COM NOME BEM COMPRIDO LTDA')
 c=sqlite3.connect(m.DB_PATH)
 for i,cn in enumerate(cnpjs[:60]):

@@ -49,3 +49,6 @@ test_v178_busca_motivos.py
 test_v178_busca_motivos_ui.py
 test_v178_cancelamentos.py
 test_v178_situacao_rolagem.py
+test_v178_rodada_silenciosa.py
+test_v178_busca_compartilhada.py
+test_v178_checkup_rolagem.py
