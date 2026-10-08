@@ -155,3 +155,8 @@ Plano V170: (a) dois estados separados: `selected` (Buscar XML) e `nfse_selected
 3. Rodar `xvfb-run -a python testes/run_suite.py` na pasta da versão e conferir o GitHub Actions antes de entregar o ZIP.
 
 - Box-e (V168): confirmado pelo usuário em 2026-10-06 que o e-mail de teste/envio com Gmail (smtp.gmail.com:587, STARTTLS, senha de aplicativo) está saindo. Falta confirmar que as notas aparecem no Box-e/Domínio. O erro "Não consegui conectar" anterior parece ter sido da senha comum (8 caracteres) em vez da senha de aplicativo: na V169, separar as mensagens de erro (senha recusada x rede bloqueada).
+
+## V179 (entregue em 08/10): feito e pendente
+- FEITO: (1) autorizadas x canceladas separadas em NFS-e (PDF/planilha), Fechamento e, em NF-e/NFC-e/CT-e, página final "Autorizadas e canceladas" (`exato_quadro_pdf.py`); (2) NFS-e "ISS fora?" + município de incidência (tela, PDF, planilha) e "ISS pago fora" nos resumos; (3) `resEvento` de cancelamento agora cancela a nota, passado reaplicado ao abrir, resumo fora de Eventos/ZIP com aviso.
+- PENDENTE com o usuário: (a) autorizar mexer no relatório principal de NF-e (núcleo protegido) para a tabela "Naturezas da operação" não somar canceladas; (b) Ciência da Operação (manifestar sozinho x só avisar; hoje só avisa); (c) NFS-e pelo PORTAL: print do menu ⋮ de uma nota cancelada + exato.log/Logs\nfse_portal para baixar o XML do evento; (d) confirmar no Windows as V176–V179; (e) horários fixos/rodar com programa fechado seguem ADIADOS.
+

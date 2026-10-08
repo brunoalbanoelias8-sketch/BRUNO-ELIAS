@@ -1,0 +1,30 @@
+V179 — AUTORIZADAS X CANCELADAS SEPARADAS, "ISS FORA?" NAS NFS-e E CANCELAMENTOS QUE NÃO ERAM APLICADOS
+
+PEDIDOS DO USUÁRIO
+1. Nos relatórios em PDF de todo tipo de XML, ao totalizar, separar o que é cancelado do que está autorizado.
+2. Nas NFS-e, coluna "ISS FORA? (NÃO / SIM)": o ISS é pago para fora da cidade do prestador? (regra confirmada: compara o município de incidência da nota com o município do prestador; mostra o nome do município.)
+3. "Ainda acho que não está importando os eventos de cancelamento, principalmente nas NFS-e."
+
+O QUE FOI FEITO
+1. Autorizadas x canceladas em linhas separadas, sempre com o total de cada uma:
+   - NFS-e: relatório mensal (resumo por mês com coluna "Canceladas (à parte)" com notas e valor; cada mês/tipo com "Autorizadas: N • R$" e "Canceladas: N • R$"; "Totais do período" com autorizadas, canceladas, ISS retido e ISS pago fora), resumo mensal, relação em PDF e planilha (Resumo mensal: "Canceladas (notas)" e "Canceladas (valor)").
+   - Fechamento do mês (`exato_fechamento_pdf.py`): resumo com autorizadas e canceladas (notas e valor) e, em cada lista, "Total autorizadas" e "Total canceladas".
+   - NF-e, NFC-e e CT-e (Relatórios e relatório do período): o relatório principal é núcleo protegido e NÃO foi alterado; o Exato junta UMA PÁGINA no fim do mesmo PDF ("Autorizadas e canceladas", `exato_quadro_pdf.py`) com as duas somas separadas por tipo e movimentação. Só na memória deste relatório o aviso de cancelamento recebido da SEFAZ (resumo do evento) vale como cancelamento registrado, para o relatório principal também enxergar a nota como cancelada; nada disso é gravado.
+   - PENDENTE de autorização: dentro do relatório principal (núcleo protegido) a tabela de "Naturezas da operação" ainda soma as canceladas junto (visto no teste: 3 notas, R$ 390,00, com uma cancelada de R$ 250,00). O quadro da última página mostra o valor certo. Para corrigir lá é preciso autorizar a alteração do núcleo.
+2. ISS fora: `exato_nfse.parse_nfse_municipio` lê `cLocIncid`/`xLocIncid` (incidência) e o município do prestador (`emit/enderNac/cMun`, ou `cLocEmi` se faltar). SIM = códigos diferentes; NÃO = iguais; faltando um dos dois = "—" (nunca "NÃO" por falta de dado). Vale para prestadas e tomadas. Aparece na lista da tela NFS-e (colunas "ISS fora?" e "Município de incidência"), no relatório mensal, na relação em PDF e na planilha; os resumos mostram "ISS pago fora" (R$) somando só as notas autorizadas.
+3. Cancelamentos:
+   - Achado: o resumo do evento (`resEvento`), que a distribuição da SEFAZ entrega ao destinatário, não traz o código de situação e por isso NUNCA cancelava a nota. Agora `_event_details` reconhece resumo de cancelamento (110111/110112) com protocolo como cancelamento; a nota passa a Cancelada na hora (também quando o resumo chega antes da nota).
+   - Passado: ao abrir a V179 (uma vez, em segundo plano) o Exato confere todos os eventos já guardados (NF-e e NFS-e) e marca como Cancelada o que ficou como autorizada; avisa quantas mudaram.
+   - O resumo NÃO é XML válido para a Domínio: nunca vai para a pasta Eventos nem para o ZIP; a nota cancelada que só tem o resumo mostra o aviso "cancelada sem o XML completo do cancelamento" (Situação da busca, "Por que?"). Se o evento completo chegar depois, ele substitui o resumo.
+   - NFS-e: pelo certificado (ADN) os eventos já eram guardados e aplicados (conferido, sem falha no código). Pelo PORTAL o Exato só marca "Cancelada" (V177); o XML do evento não é baixado e NUNCA é inventado. Falta do usuário: print do menu ⋮ de uma NFS-e cancelada no portal e o exato.log, para baixar o evento por lá.
+   - NF-e de fornecedor: o XML completo do cancelamento só é entregue depois da "Ciência da Operação" (manifestação do destinatário). Decisão pendente com o usuário (manifestar sozinho x só avisar). Nesta versão só avisa.
+
+REVISÃO FEITA NESTA VERSÃO (regra do usuário)
+- Releitura do diff; testes novos: test_v179_cancel_resumo, test_v179_iss_fora_totais, test_v179_quadro_xml; ajustados test_v179_nfse_iss, _feedback, _features, _relatorio_e_automacao (colunas novas, mais uma página no relatório mensal).
+- Armadilhas: comparação de município pelo código (nome não conta); dado faltando = "—"; `instr` sobre o XML em BLOB para achar resumo; reaplicação dos cancelamentos em segundo plano e uma única vez (`cancelamentos_v179` no estado), nada de varredura na abertura; quadro de PDF nunca derruba o relatório principal (se falhar, o PDF fica como era); PDFs com larguras somando 269 mm (sem texto quebrado no número/data) e `CondPageBreak` antes de cada seção.
+- Conferido no PDF de exemplo (imagens): resumo, listas, totais e relação. Suíte inteira (sem o teste do portal, que trava neste ambiente); fuzz de roda; núcleos 13/13 e ativos 31/31 iguais à V145.
+
+A CONFERIR NO WINDOWS
+- Abrir a V179: aviso "N nota(s) ... marcadas como Canceladas" se havia nota cancelada ainda como autorizada.
+- Gerar relatório mensal de NFS-e: colunas "ISS fora?" e "Município de incidência"; totais de autorizadas e canceladas separados.
+- Relatório de NF-e: última página "Autorizadas e canceladas".

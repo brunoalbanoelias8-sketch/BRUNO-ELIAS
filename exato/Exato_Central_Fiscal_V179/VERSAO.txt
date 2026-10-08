@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V179
+
+Autorizadas e canceladas somadas separadamente em todos os relatórios, coluna "ISS fora?" (e município de incidência) nas NFS-e e correção dos cancelamentos recebidos como resumo pela SEFAZ (notas antigas são conferidas de novo). Nenhuma regra fiscal protegida foi alterada.
