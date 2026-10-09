@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V180
+
+A Auditoria entende nota cancelada (coluna Documento), relatório em PDF bonito na tela Documentos fiscais (tipos sempre separados, autorizadas e canceladas à parte) e botões legíveis no tema escuro. Nenhuma regra fiscal protegida foi alterada.

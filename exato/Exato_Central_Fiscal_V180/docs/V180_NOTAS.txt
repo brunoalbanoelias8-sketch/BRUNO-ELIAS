@@ -1,0 +1,20 @@
+V180 — AUDITORIA QUE ENTENDE NOTA CANCELADA, RELATÓRIO EM PDF DE DOCUMENTOS FISCAIS E CORES DO TEMA ESCURO
+
+PEDIDOS DO USUÁRIO
+1. Tema escuro: os botões NF-e / NFC-e do "Tipo de documento" da Auditoria ficavam brancos com letra clara (ilegíveis).
+2. Auditoria: a NFC-e 384 (cancelada) aparecia como "Sem correspondência" com R$ 217,00 de diferença; pediu uma coluna para saber se o documento é cancelado ou não. O Excel do SAT só traz notas autorizadas e não tem coluna de situação.
+3. Documentos fiscais: relatório da empresa em PDF, bem bonito, conforme o filtro; no PDF os tipos de documento sempre separados.
+
+O QUE FOI FEITO
+1. Cores: `exato_ui._BG_PAIRS` ganhou os 19 fundos claros que ficavam claros no tema escuro (`#F2F4F7` e outros); os botões de tipo da Auditoria passaram a "☐ NF-e · 55" / "☐ NFC-e · 65" (sem a palavra Modelo) e cabem em 1366 px.
+2. Auditoria (fora dos núcleos de conciliação, que ficam intactos): `_audit_separar_cancelados` (chamada ao concluir a auditoria) tira de "XML sem correspondência" as notas que constam CANCELADAS no banco, guarda em `cancelled_xml` e acerta a contagem/total de XMLs e o "XML somente"; `_audit_display_rows` mostra essas linhas como "Cancelada" ("Nota CANCELADA: por isso não consta no SAT"), com aviso extra se já foi exportada ("confira na Domínio"). Nova coluna "Documento" (Autorizada / Cancelada) na tabela e no PDF da Auditoria, filtro "Cancelada", selo cinza, contagem no rodapé da tabela. Nota sem par no SAT que ainda consta autorizada mantém "Sem correspondência" com a dica "o SAT só traz notas autorizadas; se foi cancelada, o cancelamento ainda não chegou ao Exato"; botão direito > "Marcar como cancelada" (pede confirmação, `db_mark_document_cancelled`, registra a ocorrência "cancelada sem o XML do cancelamento"; nunca cria XML de evento).
+3. Relatório de Documentos fiscais (`exato_relatorio_docs_pdf.py`, sem Tkinter; NÃO usa nem altera `generate_documents_pdf`): botão "Relatório PDF" (sempre ligado; com notas marcadas gera só as marcadas, sem marcar gera todas as do filtro, até milhões de linhas lidas sem XML). Capa com logo, empresa/CNPJ, período, filtros em português, quatro cartões (autorizadas, canceladas à parte, entradas/tomados, saídas/prestados) e quadro por tipo e movimentação; página "Visão geral por mês" (barras por mês e tipo, pizza entradas x saídas, quadro mensal); depois UMA SEÇÃO (página nova) POR TIPO: NF-e, NFC-e, CT-e, NFS-e, nunca misturados, cada uma com faixa colorida, quadro por movimentação (autorizadas x canceladas), lista (Nº, série, emissão, movimentação, outra parte, chave, valor, situação, exportada), total das autorizadas e total das canceladas, cancelada já exportada em destaque; NFS-e com Alíq., ISS, Retido, ISS fora?, município e totais de ISS. A outra parte da NF-e/NFC-e/CT-e é lida do XML em lotes de 300 (`relatorio_documentos_linhas`). Gera em segundo plano (andamento na barra de status), lembra a pasta (`doc_report_dir`) e abre o PDF sozinho. Medido: 6 000 documentos em 5,8 s.
+
+REVISÃO FEITA NESTA VERSÃO (regra do usuário)
+- Releitura do diff; testes novos: test_v180_auditoria_cancelada, test_v180_auditoria_ui, test_v180_relatorio_documentos.
+- Armadilhas: nada de Tk fora da fila (`_repo_post`); sem transação aberta durante a geração; texto simples nas listas grandes (Paragraph só em cabeçalhos/quadros); larguras das tabelas somando 269 mm (sem número/data quebrados); `_audit_separar_cancelados` idempotente (chamar de novo após marcar à mão); botão novo não depende de seleção.
+- Capturas 1366x650 (tema escuro) de Documentos fiscais e da Auditoria; páginas do PDF conferidas em imagem; suíte inteira (sem o teste do portal); fuzz de roda; núcleos 13/13 e ativos 31/31 iguais à V145.
+
+A CONFERIR NO WINDOWS
+- Auditoria da ELYON: a NFC-e 384 deve aparecer "Cancelada", fora das divergências e da diferença de R$ 217,00; coluna Documento; botões de tipo legíveis no tema escuro.
+- Documentos fiscais > Relatório PDF com e sem notas marcadas e com um filtro; PDF abre sozinho; tipos em páginas separadas.
