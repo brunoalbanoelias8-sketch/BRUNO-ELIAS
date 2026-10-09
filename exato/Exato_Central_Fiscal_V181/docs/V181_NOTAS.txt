@@ -1,0 +1,20 @@
+V181 — RELATÓRIO DE DOCUMENTOS POR FATURAMENTO x DESPESA
+
+PEDIDOS DO USUÁRIO
+1. O relatório em PDF de Documentos fiscais (V180) só separava o tipo de documento: entrada e saída ficavam misturadas e o "total de autorizadas" não servia para nada. Estrutura pedida: seções NF-e (SAÍDA) / NF-e (ENTRADA), NFS-e (PRESTADOS) / NFS-e (TOMADOS), CT-e (PRESTADOS) / CT-e (TOMADOS), sempre os dois lados; gráficos e dashboards sempre comparando entrada com saída; FATURAMENTO = NFS-e prestados + NF-e saída + NFC-e saída + CT-e prestados; o resto é DESPESA; sem "total de autorizadas".
+2. A razão social invadia a coluna da chave de acesso e aparecia "&amp;" no nome.
+
+O QUE FOI FEITO (`exato_relatorio_docs_pdf.py`, reescrito)
+- Capa: três cartões (FATURAMENTO, DESPESA e FATURAMENTO − DESPESA, rotulado como análise, não total de documentos) e dois quadros lado a lado (faturamento por seção | despesa por seção), cada seção com notas, valor e canceladas à parte. Nenhum total geral de documentos; faturamento e despesa nunca se somam.
+- Página "Faturamento x despesa": barras por mês (faturamento x despesa), resultado do mês, composição do faturamento e da despesa por tipo (% do lado), quadro mensal (faturamento, despesa, resultado, despesa/faturamento) e maiores CLIENTES (faturamento) e FORNECEDORES (despesa).
+- Uma seção (página nova) para cada tipo E lado, nesta ordem: faturamento (NF-e saída, NFC-e saída, NFS-e prestados, CT-e prestados) e depois despesa (entrada/tomados). Os dois lados de cada tipo presente sempre aparecem (lado sem notas = só um aviso). Cada seção: faixa colorida, autorizadas e canceladas (notas e valor) só dela, lista e "Total das autorizadas"/"Total das canceladas" da seção. CT-e: Saída = prestado, Entrada = tomado.
+- Texto: nome e município cortados pela LARGURA REAL do texto (`ajustar`, com "…"), nunca passam da coluna; `&amp;`, `&quot;` etc. viram o caractere (`html.unescape` em `outra_parte`).
+- Removido: pizza entradas x saídas e qualquer "total autorizadas" geral.
+
+REVISÃO FEITA NESTA VERSÃO (regra do usuário)
+- Releitura do diff; testes: novo test_v181_relatorio_estrutura (classificação faturamento/despesa, os dois lados, ordem, sem total geral, largura do texto, &amp;, CT-e) e ajustado test_v181_relatorio_documentos; páginas do PDF conferidas em imagem (capa, análise, seções).
+- Armadilhas: eixo dos gráficos com valor negativo (resultado) e mínimo zero; legenda sem sobrepor o título; lado sem documentos não gera página vazia; larguras das listas somam 269 mm.
+- Suíte inteira (sem o teste do portal); fuzz de roda; núcleos 13/13 e ativos 31/31 iguais à V145.
+
+A CONFERIR NO WINDOWS
+- Documentos fiscais > Relatório PDF da ELYON: cada tipo com Saída e Entrada em páginas separadas, faturamento primeiro; nenhum nome sobre a chave; "BUSCHLE & LEPPER" correto; página "Faturamento x despesa" faz sentido para a análise (diga o que mais quer ver: impostos, CFOP...).

@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V181
+
+Relatório em PDF de Documentos fiscais por faturamento x despesa (NF-e, NFC-e, NFS-e e CT-e com entrada e saída sempre separadas), nomes que não invadem mais a chave de acesso. Nenhuma regra fiscal protegida foi alterada.
