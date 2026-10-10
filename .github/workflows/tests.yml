@@ -25,3 +25,40 @@ jobs:
           echo "Testando $VERSAO_DIR"
           cd "$VERSAO_DIR"
           xvfb-run -a python testes/run_suite.py
+
+  windows:
+    # V182: o mesmo conjunto no Windows (onde o programa roda de verdade) + capturas de tela das telas principais, claro e escuro.
+    # Começa como informativo (não reprova o envio): serve para ver rastro de rolagem, cores e texto sobreposto sem depender de alguém abrir o programa.
+    runs-on: windows-latest
+    timeout-minutes: 45
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Dependências (Pillow, ReportLab, OpenPyXL)
+        run: pip install pillow reportlab openpyxl
+      - name: Rodar a suíte da versão mais recente (sem o teste do navegador do portal)
+        shell: pwsh
+        run: |
+          $dir = (Get-ChildItem exato -Directory -Filter 'Exato_Central_Fiscal_V*' | Sort-Object { [int]($_.Name -replace '\D','') } | Select-Object -Last 1).FullName
+          Write-Host "Testando $dir"
+          Set-Location $dir
+          $env:EXATO_PULAR = 'nfse_portal'
+          python testes/run_suite.py
+      - name: Capturas de tela (claro e escuro)
+        if: always()
+        shell: pwsh
+        run: |
+          $dir = (Get-ChildItem exato -Directory -Filter 'Exato_Central_Fiscal_V*' | Sort-Object { [int]($_.Name -replace '\D','') } | Select-Object -Last 1).FullName
+          Set-Location $dir
+          python scripts/capturas_windows.py "$env:GITHUB_WORKSPACE/capturas" claro
+          python scripts/capturas_windows.py "$env:GITHUB_WORKSPACE/capturas" escuro
+      - name: Guardar as capturas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capturas-windows
+          path: capturas
+

@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V182
+
+Sincronia com o servidor do escritório (empresas, notas e histórico de auditoria iguais em qualquer computador), pastas do Repositório em ordem alfabética, só o administrador remove empresa, aviso de numeração faltando, resumo diário por e-mail e atualização pelo servidor. Nenhuma regra fiscal protegida foi alterada.

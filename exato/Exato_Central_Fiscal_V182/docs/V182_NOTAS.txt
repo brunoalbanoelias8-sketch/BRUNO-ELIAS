@@ -1,0 +1,31 @@
+V182 — SINCRONIA COM O SERVIDOR, REPOSITÓRIO EM ORDEM ALFABÉTICA, ADMINISTRADOR REMOVE EMPRESA E MAIS
+
+PEDIDOS DO USUÁRIO
+1. Repositório em ordem alfabética (a pasta de cada empresa era "CNPJ - Nome").
+2. Empresas, documentos fiscais, relatórios e histórico de auditoria iguais em QUALQUER computador (a pasta compartilhada é o servidor do escritório; sem nuvem, sem VPN).
+3. Só o administrador pode remover empresa.
+4. Sugestões aceitas por ele: teste no Windows, versão mínima/atualização pelo servidor, numeração faltando, resumo diário por e-mail (a cópia de segurança do banco no servidor JÁ existia desde a V168: uma por dia e por computador, 30 dias, em `<pasta>\Backups\AAAA-MM-DD`).
+
+O QUE FOI FEITO
+1. Pastas "Nome - CNPJ" (`exato_repositorio._Empresas._nome_pasta`): a lista fica em ordem alfabética. `cnpj_no_nome`/`nome_no_nome` reconhecem os DOIS formatos (busca compartilhada, índice, restauração, ZIP, fechamento). As pastas antigas "CNPJ - Nome" são migradas sozinhas na cópia (renomeia; se já existir a nova, une sem sobrescrever e sem apagar).
+2. Sincronia (`exato_sincronia.py` + `App._sinc_tick/_sinc_fim`): ao alcançar o servidor, no máximo a cada 20 min e em segundo plano: (a) EMPRESAS: `.indice\empresas.json` mescla por CNPJ; as do servidor entram aqui, as daqui sobem; (b) NOTAS: o que falta no banco local é trazido do servidor automaticamente (a cada 6 h, `_trazer_executar`; empresas removidas ficam de fora); (c) AUDITORIAS: `.indice\auditorias\<CNPJ>.json` mescla com o histórico local (agora até 500 entradas) e o Excel do SAT usado sobe para `<empresa>\<Ano>\<Mês>\Auditoria\` e desce para `SAT_AUDITORIA` (o "reaproveitar o Excel" da auditoria passa a achar o arquivo de outro computador); (d) RELATÓRIOS: saem do banco (iguais com o banco igual); os guardados (Fechamento) já ficam na pasta do servidor. Aviso único "Sincronizado com o escritório: N empresas, N notas, N auditorias". Fora do escritório: aviso discreto na barra, no máximo a cada 6 h: "Fora do escritório: mostrando a última cópia sincronizada em dd/mm" (ou, se nunca sincronizou, que as notas buscadas aqui ficam neste computador e o escritório busca de novo). Nada de nuvem nem VPN.
+3. Remover empresa: botão "Remover empresa" na tela Empresas SÓ para o administrador (usuário comum não vê o botão e, se chamar, recebe a explicação). Remover = tirar do cadastro e das buscas (`db_remove_company`, tabela `empresas_removidas`); NUNCA apaga nota, XML nem Repositório. A remoção vai para o servidor ("removida", com quem e quando); em outro computador só um administrador aplica (usuário comum não aplica). O administrador cadastrando a empresa de novo desfaz a remoção em todos os computadores.
+4. Versão e formato (`versao.json`): o servidor guarda o formato dos arquivos compartilhados e a versão mais nova. Exato mais velho que o formato do servidor NÃO grava (`exato_repositorio.BLOQUEADO`: cópia de notas, busca compartilhada, fechamento) e avisa para atualizar. A versão mais nova publica um pacote no servidor (`.atualizacao\Exato_Central_Fiscal_Vxxx.zip`); os outros computadores oferecem "Instalar agora" (extrai numa pasta nova ao lado; a atual fica intacta) uma vez por dia.
+5. Numeração faltando (`exato_numeracao.py`): para NF-e e NFC-e de SAÍDA, números que não existem na sequência de cada série (cancelada conta como existente); aparece no PDF de Documentos fiscais, na seção de saída, com a ressalva de inutilizada.
+6. Resumo diário por e-mail (`exato_resumo_diario.py`, botão "Resumo diário" em Empresas): depois das 7h (Exato aberto), uma linha por empresa (em dia / atrasada / canceladas sem XML / numeração faltando); usa o e-mail do Box-e; só um computador envia por dia (marca atômica `Resumo diario\AAAA-MM-DD.json` no servidor); "Enviar agora (teste)".
+7. Teste no Windows: o GitHub agora roda também em `windows-latest` (informativo, `continue-on-error`): a suíte (sem o teste do navegador do portal, `EXATO_PULAR=nfse_portal`) e `scripts/capturas_windows.py` (capturas claro/escuro das telas principais, com e sem rolar até o fim), guardadas como arquivo "capturas-windows".
+
+REVISÃO FEITA NESTA VERSÃO (regra do usuário)
+- Releitura do diff; testes novos: test_v182_pastas_alfabetica, test_v182_sincronia, test_v182_sincronia_ui, test_v182_numeracao_resumo; ajustados repositório, fechamento e nome da empresa (formato novo da pasta).
+- Armadilhas: tudo da sincronia em linha de trabalho com `_repo_post` para a tela; nada de transação aberta durante rede; arquivos do servidor por troca atômica e que só crescem; leitura nos dois formatos de pasta; nunca apagar nota/XML/empresa sozinho; usuário comum nunca remove nem aplica remoção; Exato velho não grava; marca atômica do resumo (um envio por dia); "trazer" automático só a cada 6 h e nunca durante busca/rodada.
+- Capturas das telas no tema escuro (script de capturas); suíte inteira (sem o teste do portal); fuzz de roda; núcleos 13/13 e ativos 31/31 iguais à V145.
+
+LIMITES CONHECIDOS
+- Em casa (sem alcançar o servidor) o que foi feito no escritório depois da última sincronização só aparece quando o computador alcançar o servidor. O que for buscado em casa entra no banco local e sobe na próxima ligação ao servidor; o computador do escritório também busca de novo na SEFAZ.
+- Numeração faltando não enxerga inutilização (o Exato não recebe esse evento): é aviso para conferir.
+
+A CONFERIR NO WINDOWS
+- Servidor: as pastas viram "Nome - CNPJ" e ficam em ordem alfabética; nada some.
+- Dois computadores: empresa cadastrada num aparece no outro depois de alcançar o servidor; administrador remove, usuário comum não.
+- Resumo diário: "Enviar agora (teste)" chega; no dia seguinte chega sozinho, uma vez.
+- GitHub > Actions > "capturas-windows": telas sem rastro nem texto sobreposto.
