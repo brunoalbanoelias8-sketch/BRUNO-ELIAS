@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V183
+
+Espaço em disco sob controle: limpeza segura SÓ de arquivos do Exato Central Fiscal (tela Espaço usado), diagnóstico das buscas desligado, backups automáticos reduzidos, pausa com disco quase cheio, prioridade de empresa na fila do Repositório e correções da busca de NF-e/NFS-e. Nenhuma regra fiscal protegida foi alterada.

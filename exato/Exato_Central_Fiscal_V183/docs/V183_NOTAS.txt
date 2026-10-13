@@ -1,0 +1,31 @@
+V183 — ESPAÇO EM DISCO, LIMPEZA SEGURA, PRIORIDADE DE EMPRESA NA FILA E CORREÇÕES DA BUSCA
+
+PEDIDOS DO USUÁRIO
+1. Disco cheio (Trabalho 6,5 GB, Backups 2,8 GB, banco 1,4 GB) e erro do plugin da Domínio por falta de espaço: "uma solução para não ficar enchendo o armazenamento".
+2. REGRA: tudo que envolver limpeza é referente ao Exato Central Fiscal, para nunca excluir outros tipos de arquivos.
+3. "Dar prioridade" a uma empresa na fila do Repositório.
+4. Do exato.log enviado: erro "not enough values to unpack" na NF-e; NFS-e 400 "CNPJ Base"; Fechamento (motivos) repetindo o mesmo erro.
+
+O QUE FOI FEITO
+1. Causa do espaço: a pasta Trabalho\DIAGNOSTICO_WEBSERVICE guardava as respostas da SEFAZ de cada busca (3 cópias) e cada versão nova criava um backup "antes da atualização" que nunca saía. Agora o diagnóstico vem DESLIGADO (Manutenção > Modo técnico > "Guardar diagnóstico das buscas"); ligado, a limpeza automática mantém só as 3 últimas execuções, no máximo 300 MB e 7 dias. Backups automáticos: ficam os 2 mais novos (antes 30); backup temporário que falhou é apagado; o backup confere o espaço antes e apaga o zip incompleto.
+2. LIMPEZA SÓ DO EXATO (`exato_limpeza.py`): só dentro da pasta de dados do Exato (%LOCALAPPDATA%\Exato\Central Fiscal\Dados), por LISTA BRANCA (diagnóstico, restos de backup, backups automáticos antigos, PDFs guardados). Nunca toca: XML/notas, banco, usuários, configurações, SAT_AUDITORIA, pastas dos clientes, Repositório do servidor, Documentos/Desktop e outros programas (ex.: Domínio). Não segue atalho/junção; backups feitos pelo usuário ("manual", "antes da restauração") nunca entram. Os textos dizem "arquivos do Exato Central Fiscal", mostram a pasta completa e o tamanho antes de apagar, e o exato.log registra o que foi apagado.
+3. Tela Manutenção > ESPAÇO USADO: espaço livre, quanto cada coisa ocupa, o que pode ser limpo (marcado com explicação e pasta), confirmação e "Abrir pasta de dados". Limpeza automática 1x por dia em segundo plano (mesma lista branca).
+4. Pouco espaço: abaixo de 2 GB (ou 5%) aviso (a cada 6 h); abaixo de 300 MB as buscas, a cópia ao servidor, o Box-e, o fechamento e a sincronia AUTOMÁTICOS pausam; busca feita à mão pergunta antes (padrão "não"); backup do dia não é feito sem espaço. Mensagem de disco cheio em português claro e `save_config` não derruba o programa.
+5. Prioridade de empresa: "Copiar esta empresa" (Empresas) e "Fila por empresa..." (Repositório; quanto falta de cada uma, Dar/Tirar prioridade, Copiar só esta agora). Empresa com prioridade é copiada primeiro; a marca sai sozinha quando a fila dela esvazia; abrir a empresa (duplo clique) e gerar relatório dela também passam a empresa na frente. "Copiar agora" manual vale mesmo durante busca.
+6. NF-e: adaptador `_fetch3` completa o retorno de 2 valores da consulta à SEFAZ (núcleo protegido intocado) e a busca passa a mostrar o MOTIVO em vez do erro interno. NFS-e: certificado de outra raiz de CNPJ vira mensagem clara + causa na Situação da busca. Fechamento (motivos): em falha espera 1, 2, 4... até 60 min e só a primeira falha vai ao log.
+
+REVISÃO FEITA NESTA VERSÃO (regra do usuário)
+- Releitura do diff; testes novos: test_v183_limpeza (pasta falsa com arquivos de fora, atalho, backups do usuário, SAT_AUDITORIA), test_v183_prioridade, test_v183_espaco_ui (pausa com disco crítico, tela Espaço usado, fila por empresa, marca que some, diagnóstico, _fetch3, disco cheio, motivo).
+- Armadilhas: limpeza e leitura de espaço fora da tela (segundo plano + `_repo_post`); nada de rmtree em pasta inteira (só arquivos da lista e pastas vazias); registro com `setup_logging()`.
+- Suíte inteira (sem o teste do portal), fuzz de roda, núcleos 13/13 e ativos 31/31.
+
+LIMITES CONHECIDOS
+- A limpeza não apaga o banco de notas (1,4 GB): ele cresce com as notas. O servidor também guarda cópia.
+- Backups "antes da atualização" antigos só saem quando a limpeza rodar (diária ou pelo botão).
+- Prioridade automática ao fechar mês não foi feita (o fechamento já roda por empresa).
+
+A CONFERIR NO WINDOWS
+- Manutenção > ESPAÇO USADO: mostra a pasta de dados, o que pode ser limpo e pede confirmação; depois da limpeza o espaço livre sobe e NADA de fora do Exato some.
+- Repositório > Fila por empresa: dar prioridade a uma empresa e ver a fila dela esvaziar primeiro.
+- Busca de NF-e que dava "not enough values": agora mostra o motivo.
+- Confirmar V176–V183 no Windows e o job do Windows no GitHub Actions.
