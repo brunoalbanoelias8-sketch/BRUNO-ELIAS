@@ -233,3 +233,4 @@ Plano V170: (a) dois estados separados: `selected` (Buscar XML) e `nfse_selected
 
 ## Retorno do usuário (14/10, após a V185)
 - CONFIRMADO NO WINDOWS: a Auditoria que busca só o XML que falta (V185) funcionou ("deu certo"). Continua aberto: tipo mais afetado e se quer nova tentativa automática para o que a SEFAZ não entregou; abertura rápida da V184 ainda sem resposta.
+- DECISÃO DO USUÁRIO (14/10): para notas que a SEFAZ não entregou na busca dirigida, basta a EXPLICAÇÃO na própria linha da auditoria; NÃO fazer nova tentativa automática.
