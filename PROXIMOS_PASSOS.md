@@ -230,3 +230,6 @@ Plano V170: (a) dois estados separados: `selected` (Buscar XML) e `nfse_selected
 ## V185 (feita em 14/10): Auditoria busca só o XML que falta
 - FEITO: pergunta ao fim da auditoria + botão "Buscar XML que falta"; busca dirigida por faixa de NSU (não move o ponto da busca normal); reconfere sozinha; explica "a SEFAZ não entregou". Testada só com SEFAZ simulada.
 - PENDENTE com o usuário: (a) testar no Windows com um Excel do SAT que tenha nota sem XML e dizer se achou/ficou claro; (b) responder: tipo mais afetado (NFC-e/NF-e) e se prefere nova tentativa automática depois; (c) abertura da V184 ficou rápida?; (d) antigos: autorizar relatório principal de NF-e, Ciência da Operação, print do menu ⋮ NFS-e, botão "Enviar log", mostrar "próxima consulta liberada às HH:MM" na NF-e, confirmar V176–V185 no Windows.
+
+## Retorno do usuário (14/10, após a V185)
+- CONFIRMADO NO WINDOWS: a Auditoria que busca só o XML que falta (V185) funcionou ("deu certo"). Continua aberto: tipo mais afetado e se quer nova tentativa automática para o que a SEFAZ não entregou; abertura rápida da V184 ainda sem resposta.
