@@ -1,0 +1,37 @@
+V184 — BUSCA COM ANDAMENTO REAL, VIGIA DE LENTIDÃO E ABERTURA RÁPIDA
+
+PEDIDOS DO USUÁRIO
+1. "Muito lento" e a busca da empresa (Lucas Guzatti) parada em "Aguardando" por mais de 5 minutos, sem dizer nada; números na tela que não mudam e que não pareciam da empresa.
+2. A tela não mostrava qual busca estava rodando (o aviso só dizia "já existe uma busca").
+3. Dúvida se a busca automática atrapalha quando se mexe numa empresa nova.
+
+O QUE FOI DESCOBERTO (exato.log do usuário + medição)
+- O log da V183 não tinha erro nenhum e a busca não escrevia nada nele: não dava para saber onde ela parava.
+- LENTIDÃO NA ABERTURA: a primeira abertura de cada versão nova fazia, ANTES de mostrar a tela, um backup completo do banco (copia + compressão). Medido: banco de 730 MB = 6 s no Linux; com 1,4 GB e antivírus no Windows são minutos. Isso também gerou os 2,8 GB de "antes da atualização".
+- A consulta à SEFAZ (núcleo protegido) usa PowerShell com limite de 60 s; no Windows esse limite pode não encerrar a consulta quando algo fica preso (ex.: certificado esperando senha), e a busca ficava parada para sempre sem avisar.
+
+O QUE FOI FEITO
+1. Backup "antes da atualização" agora roda em SEGUNDO PLANO, com o Exato ocioso (`fazer_backup_da_atualizacao`, `_backup_atualizacao_tick`); a abertura caiu de 6,9 s para 1,0 s no teste com 120 mil notas.
+2. Toda consulta à SEFAZ passa por `_fetch_log` (sem tocar nos núcleos): tempo máximo de 100 s (travou = desiste, registra "sem resposta" e a busca segue), painel de andamento e registro no exato.log (primeira consulta, as lentas > 10 s e as que falham; início e fim de cada busca com duração, consultas e notas).
+3. Painel de andamento na tela Buscar XML (`busca_prog_label`, atualizado a cada 2 s): "Buscando há 4 min 10 s • 37 consulta(s) à SEFAZ • 1.850 nota(s) recebida(s) • aguardando a SEFAZ há 12 s (NF-e)" ou "última resposta há 3 s"; some quando a busca acaba.
+4. Aviso de busca em andamento diz QUAL é ("a busca de NF-e/NFC-e/CT-e de <empresa>", NFS-e, auditoria ou busca automática) e como interromper.
+5. Vigia de lentidão (`_watchdog_start`): se a tela ficar mais de 1,5 s sem responder, o exato.log guarda o trecho do código em que o programa estava e, depois, quanto tempo ficou parada (máx. 60 registros por abertura).
+6. Limpeza automática mais leve: só com o Exato aberto há 10 min e sem uso nos 3 min anteriores, apaga com pausas e PARA na hora se começar uma busca ou se a pessoa voltar a usar o programa (continua no próximo ciclo).
+7. Início: gráfico sem movimentação gerava erro "max() iterable argument is empty" no log; corrigido (`exato_ui.draw_bar_chart`).
+
+REVISÃO FEITA NESTA VERSÃO (regra do usuário)
+- Releitura do diff; testes novos: test_v184_busca_progresso (consulta que trava desiste, progresso, painel, aviso de qual busca roda, vigia grava no log, backup em segundo plano), ajuste em test_v184_limpeza (limpeza interrompível).
+- Medição com 49 empresas e 120 mil notas (abrir, todas as telas, 80 s parado com o agendador): sem travas; abertura 1,0 s.
+- Armadilhas: painel/vigia só tocam a tela pela fila de eventos do Tk; consulta abandonada continua numa linha "daemon" e é descartada; nada de transação de banco aberta.
+- Suíte inteira (sem o teste do portal), fuzz de roda, núcleos 13/13 e ativos 31/31.
+
+LIMITES CONHECIDOS
+- Não foi feita a trava "nota só entra na empresa se o CNPJ dela estiver na nota": o resumo (resNFe) da NF-e não traz o CNPJ do destinatário e a trava descartaria notas legítimas de entrada. Fica para quando houver prova de nota em empresa errada.
+- A consulta travada é abandonada, mas o processo do PowerShell preso pode continuar vivo até o Windows encerrá-lo.
+- Os números dos cartões da tela Buscar XML continuam sendo as notas já gravadas da empresa; o andamento da busca agora aparece no painel novo.
+- "Parar a busca atual e buscar outra empresa" ainda é manual (Cancelar busca).
+
+A CONFERIR NO WINDOWS
+- Abrir o Exato logo depois de instalar a V184: deve abrir rápido (o backup acontece depois, sozinho).
+- Buscar a empresa do Lucas: o painel deve mostrar tempo, consultas e "aguardando a SEFAZ". Se travar, depois de ~100 s aparece "sem resposta" e o motivo no log.
+- Mandar o exato.log depois de um dia de uso: as linhas "Tela sem responder" mostram o que pesa.

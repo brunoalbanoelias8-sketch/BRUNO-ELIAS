@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V184
+
+Busca com andamento real (tempo, consultas, notas, espera pela SEFAZ), consulta travada desiste sozinha, abertura rápida (backup depois, em segundo plano), vigia de lentidão no registro de erros e limpeza automática mais leve. Nenhuma regra fiscal protegida foi alterada.
