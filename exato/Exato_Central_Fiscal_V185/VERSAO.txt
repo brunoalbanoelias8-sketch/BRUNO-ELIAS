@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V185
+
+Auditoria que busca só o XML que falta (pergunta, busca a faixa de notas em volta, confere de novo e explica o que a SEFAZ não entregou), mais o andamento real da busca e a abertura rápida da V184. Nenhuma regra fiscal protegida foi alterada.

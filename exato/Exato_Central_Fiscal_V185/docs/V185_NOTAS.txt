@@ -1,0 +1,26 @@
+V185 — AUDITORIA QUE BUSCA SÓ O XML QUE FALTA
+
+PEDIDO DO USUÁRIO
+Quando a auditoria apontar "SAT localizado, mas não possui XML na Central", ela mesma recomendar buscar de novo e, melhor ainda, buscar SÓ o XML que não apareceu, usando como base o que a auditoria apontou. (Sugestões dele aceitas: ver docs da V184 para a busca com andamento.)
+
+O QUE FOI FEITO
+1. `exato_auditoria_busca.py` (sem Tkinter): lê as linhas "Sem correspondência" da auditoria (SAT tem, Central não; cancelada fica de fora), agrupa por tipo e sentido (NFC-e; NF-e saída/entrada) e calcula a FAIXA de busca: começa no NSU da última nota já guardada emitida antes de (primeira que falta − 3 dias) e termina na primeira guardada depois de (última que falta + 4 dias). Nunca varre o período inteiro.
+2. Ao terminar a auditoria, se há nota sem XML e há certificado escolhido, o Exato PERGUNTA: "A auditoria achou N nota(s) do SAT sem XML na Central (12 NFC-e e 3 NF-e). Quer buscar agora só o que falta?". Botão novo "Buscar XML que falta" na Auditoria faz o mesmo quando quiser.
+3. A busca dirigida (`App._audit_buscar_faltantes`) grava as notas achadas aos poucos, NÃO mexe no ponto de continuação da busca normal, para na faixa, respeita a espera que a SEFAZ pede na NF-e (conta como "aguardar X"), passa por `_fetch_log` (tempo máximo, andamento, log) e pode ser cancelada.
+4. Ao terminar, a auditoria é refeita sozinha com os mesmos Excel do SAT; o resultado diz "X de Y XML encontrado(s)" e, nas que continuam sem XML, a observação passa a dizer "Procurei na SEFAZ em dd/mm hh:mm e ela não entregou este XML (conferi a faixa de notas em volta). Se a nota é válida, tente de novo mais tarde." (`AUDIT_TENTADAS`; só para notas cuja faixa foi realmente consultada).
+5. Enquanto roda, conta como busca em andamento (cópia ao servidor e busca automática esperam; o aviso diz "a busca do que falta da auditoria").
+
+REVISÃO FEITA NESTA VERSÃO (regra do usuário)
+- Releitura do diff; teste novo `test_v185_auditoria_busca` (faixa 10 a 26, SEFAZ simulada entregando só 2 de 3, comeca no NSU certo e não desde o 0, notas gravadas, observação "não entregou" só na que faltou, botão liga/desliga, busca em andamento).
+- Núcleos protegidos intocados (`_audit_*` do motor, `sync_documents_automatically`, `test_sef_*`): a busca dirigida só os CHAMA; a observação nova fica na camada de apresentação (`_audit_display_rows`).
+- Suíte inteira (sem o teste do portal), fuzz, núcleos 13/13 e ativos 31/31.
+
+LIMITES CONHECIDOS
+- Não existe, no Exato, consulta por chave de acesso (a SEFAZ de SC é consultada por sequência NSU); por isso a busca é dirigida por FAIXA, não por nota. Testada só com SEFAZ simulada (o ambiente de desenvolvimento não alcança a SEFAZ): conferir no Windows.
+- Se a empresa não tem nota guardada antes da faixa, a busca começa do NSU 0 (primeira vez da empresa).
+- NF-e com sentido desconhecido (linha do SAT sem entrada/saída) consulta os dois fluxos, sujeito à espera que a SEFAZ exige.
+- Nota que a SEFAZ nunca entrega (ex.: emitida em contingência e não enviada) continua "sem XML": só o XML do emitente resolve.
+
+A CONFERIR NO WINDOWS
+- Auditoria com Excel do SAT com notas sem XML: aparece a pergunta; aceitar; ao fim a tabela é atualizada e as que faltam trazem a explicação.
+- exato.log: linhas "Auditoria: busca dirigida ..." e "Busca NFC-e ...".
