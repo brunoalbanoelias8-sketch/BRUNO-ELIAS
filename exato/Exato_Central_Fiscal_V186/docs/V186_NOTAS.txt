@@ -1,0 +1,31 @@
+V186 — NFS-e PELA EMPRESA DO ACESSO DIGITADO E AUDITORIA NA SITUAÇÃO DA BUSCA
+
+PEDIDOS DO USUÁRIO
+1. NFS-e: clicou em "Usuário e senha", digitou o acesso de OUTRA empresa e buscou: o Exato buscou a empresa que já estava escolhida (Pereira Pescados) e respondeu "nenhum documento novo". "Isso é um defeito."
+2. Na Situação da busca, mostrar se a auditoria foi feita ou não.
+
+CAUSA DO PEDIDO 1 (achada no código e confirmada em simulação)
+- No modo usuário e senha, a empresa da busca vinha só do campo "Empresa ou CNPJ" (a escolhida antes). O portal entrava com o acesso digitado, devolvia notas da outra empresa e o Exato as descartava como "de outras empresas" (filtro `outras_empresas`), terminando em "nenhum documento novo". O aviso era igual para portal e certificado, então parecia busca por certificado. Como "lembrar a senha" estava marcado, o acesso digitado foi guardado para a empresa ERRADA (Pereira): ver "Para conferir".
+- O certificado escolhido também trocava a empresa digitada pela dele, mesmo no modo usuário e senha.
+
+O QUE FOI FEITO
+1. Usuário e senha: se o usuário digitado é um CNPJ válido diferente da empresa escolhida, a empresa da busca passa a ser a do acesso digitado (campo atualiza e um aviso diz "Empresa da busca: ... (a do acesso digitado)"); vale ao digitar e ao clicar em buscar (`_nfse_access_to_company`). Usuário que é CPF não muda nada; acesso preenchido pelo próprio Exato (guardado da empresa) não conta como digitado.
+2. No modo usuário e senha o certificado nunca mais troca a empresa (`_nfse_sync_company_from_certificate`).
+3. Se o portal responde só com notas de OUTRA empresa: o resumo diz "Nenhuma nota desta empresa: o portal trouxe N nota(s) de OUTRA empresa" e manda conferir o usuário/ "Esquecer senha salva".
+4. O aviso e o registro dizem o caminho: "Busca pelo portal concluída — ..." / "pelo certificado"; exato.log: "NFS-e: busca PELO PORTAL (usuário e senha) da empresa ..." / "PELO CERTIFICADO".
+5. Situação da busca ganhou a coluna "Auditoria" (`exato_situacao_busca.auditorias_por_empresa`, `celula_auditoria`): lê o histórico de auditorias e mostra, por empresa, Auditada (verde) / Com divergência (âmbar: achou diferença ou nota sem XML) / Auditada em parte (azul: falta NF-e ou NFC-e) / Não auditada (cinza) / Sem notas p/ auditar, com período, tipos e data da auditoria; só vale a auditoria MAIS RECENTE de cada tipo; clicar abre a Auditoria Fiscal já na empresa; filtros novos "Só sem auditoria" e "Só com divergência na auditoria"; legenda; a janela "Por que?" traz a seção "Auditoria Fiscal".
+
+REVISÃO FEITA NESTA VERSÃO (regra do usuário)
+- Releitura do diff; testes novos: test_v186_situacao_auditoria (estados, mais recente, multi-tipo, filtros, tela, clique, "Por que?"), test_v186_nfse_acesso (CNPJ digitado vira a empresa, CPF não, certificado não troca, busca pelo portal da empresa certa, aviso de nota de outra empresa, log sem senha).
+- Armadilhas: a coluna é DESENHADA no mesmo quadro (sem componente por célula, rolagem lisa); tema escuro por pares de cor; leitura do histórico na linha de trabalho; toasts só pelo caminho normal.
+- Suíte inteira (sem o teste do portal), fuzz, núcleos 13/13 e ativos 31/31.
+
+LIMITES CONHECIDOS
+- A auditoria só existe para NF-e e NFC-e; CT-e e NFS-e não aparecem na coluna.
+- "Auditada" não diz que o mês inteiro foi coberto: mostra o período da última auditoria; mês fechado sem auditoria não gera alerta próprio (só o filtro).
+- Acessos já guardados errado antes da V186 continuam guardados até serem esquecidos.
+
+PARA CONFERIR NO WINDOWS (e ação do usuário)
+- Pereira Pescados: a senha salva dela é do OUTRO acesso (foi guardada pelo defeito). Selecione a Pereira em NFS-e > Usuário e senha e clique em "Esquecer senha salva"; depois digite o acesso certo.
+- Digite o acesso (CNPJ) de uma empresa diferente da escolhida: a empresa muda sozinha e a busca vem dela.
+- Empresas > Situação da busca: coluna Auditoria; clique em "Não auditada" abre a Auditoria da empresa.

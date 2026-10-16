@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V186
+
+NFS-e por usuário e senha busca a empresa do acesso digitado (e avisa se foi pelo portal ou pelo certificado); Situação da busca mostra se a Auditoria foi feita. Nenhuma regra fiscal protegida foi alterada.
