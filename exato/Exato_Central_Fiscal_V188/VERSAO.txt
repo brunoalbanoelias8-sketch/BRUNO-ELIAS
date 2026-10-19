@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V188
+
+"Sem notas" só quando a SEFAZ realmente respondeu que não há; recusas aparecem com o motivo; cliente recém-vinculado é buscado sozinho de hora em hora nos primeiros dias; aviso azul quando só falta a janela da NF-e. Nenhuma regra fiscal protegida foi alterada.

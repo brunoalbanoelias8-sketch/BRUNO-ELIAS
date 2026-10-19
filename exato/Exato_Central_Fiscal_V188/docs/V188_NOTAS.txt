@@ -1,0 +1,32 @@
+V188 — "SEM NOTAS" HONESTO, AVISO CERTO NA ESPERA E CLIENTE RECÉM-VINCULADO
+
+PEDIDOS DO USUÁRIO
+1. Cliente recém-vinculado ao contador na SEFAZ (Emporio das Bebidas, tem NFC-e): o Exato mostrava "Sem notas • buscado até 19/10" ("Mas tem nota") e um aviso vermelho "Uma ou mais fontes não foram concluídas".
+2. A consulta de cliente novo deve ser automática (o Web Service guarda ~90 dias), repetindo sozinha se o vínculo ainda não valer.
+
+CAUSAS ACHADAS (código + simulação)
+- `test_sef_nfce_webservice` devolve ok=True para qualquer cStat menos 9999/215/280, e `sync_documents_automatically` (núcleo protegido) trata cStat desconhecido SEM documentos como "nenhum documento adicional": uma recusa da SEFAZ (ex.: contador ainda não autorizado) virava "Sem notas, buscado até hoje" e gravava a cobertura.
+- Quando só faltava o próximo fluxo da NF-e (janela), o evento emitido era de ERRO com texto genérico.
+
+O QUE FOI FEITO (no ponto de chamada; núcleos protegidos intocados)
+1. `_fetch_log`: resposta com cStat fora de {117, 118, 137, 138}, sem documentos, deixa de valer como sucesso: vira falha com a frase "A SEFAZ respondeu com o código N: <motivo>"; a cobertura NÃO é gravada.
+2. Nova causa em português "A SEFAZ ainda não liberou o acesso a esta empresa" (`vinculo_pendente`; textos como "não autorizou", "vínculo", "contabilista", "sem permissão"): explica a demora do vínculo e manda conferir se foi feito para o MESMO CPF/CNPJ do certificado escolhido.
+3. A resposta da SEFAZ aparece na tela: Situação da busca mostra "A SEFAZ respondeu: Nenhum documento localizado (137)" nas células "Sem notas" e na janela "Por que?"; a ocorrência guarda o cStat e o motivo curto.
+4. Espera do próximo fluxo da NF-e = aviso AZUL: "Busca concluída — X: 0 documento(s) novo(s). Falta consultar Destinatário / Entrada (a SEFAZ pede esperar cerca de 1h00)." (e o Exatinho diz o mesmo), não mais erro.
+5. Erro de verdade: o aviso vermelho traz a causa em português ("NFC-e: A SEFAZ ainda não liberou o acesso... Confira no portal..."), até 260 caracteres.
+6. Cliente novo / recém-vinculado (`exato_vinculo.py` + `App._vinculo_tick`, a cada 10 min, só com Exato ocioso, sem busca e com certificado escolhido): empresa criada há até 3 dias sem nenhuma nota XML, ou com a última causa "vínculo ainda não liberado", é buscada sozinha (uma empresa por vez) e repetida a cada 1 hora por 3 dias; se a janela acabar sem acesso, um único aviso: "X continua sem acesso na SEFAZ depois de 3 dias". Empresa que já recebeu nota nunca entra.
+
+REVISÃO FEITA NESTA VERSÃO (regra do usuário)
+- Releitura do diff; teste novo `test_v188_cstat_vinculo` (cStat desconhecido vira falha, 137/138 e documentos continuam sucesso, busca inteira não vira "nenhum documento adicional", classificação, resposta da SEFAZ na Situação, aviso azul, erro com causa, fila do cliente novo com intervalo de 1 h e janela de 3 dias, agendador na tela).
+- Núcleos protegidos intocados (a correção fica em `_fetch_log`, o adaptador do ponto de chamada).
+- Suíte inteira (sem o teste do portal), fuzz, núcleos 13/13 e ativos 31/31.
+
+LIMITES CONHECIDOS
+- Não sabemos o tempo de propagação do vínculo na SEFAZ nem se ela entrega notas anteriores ao vínculo; testado só com SEFAZ simulada.
+- Se a SEFAZ responder um código novo de "tudo certo sem notas" que não esteja em {117, 118, 137, 138}, o Exato passa a tratar como recusa: o aviso mostra o código e o motivo para ajustarmos a lista.
+- A repetição só acontece com o Exato aberto (horários fixos / rodar fechado continuam adiados).
+- Elyon (notas até 16/10, busca registrada até 08/10): não alterado; investigar com o exato.log.
+
+A CONFERIR NO WINDOWS
+- Emporio das Bebidas: a célula mostra o que a SEFAZ respondeu (ou a causa de vínculo); depois de liberado, as notas entram sozinhas.
+- exato.log: "Cliente novo/recém-vinculado ...: busca automática (tentativa N)" e "Busca NFC-e ...".
