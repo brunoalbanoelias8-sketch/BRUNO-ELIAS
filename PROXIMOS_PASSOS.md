@@ -242,3 +242,7 @@ Plano V170: (a) dois estados separados: `selected` (Buscar XML) e `nfse_selected
 ## V186 (feita em 16/10): NFS-e pelo acesso digitado + Auditoria na Situação da busca
 - FEITO: empresa da busca = CNPJ de acesso digitado (modo usuário e senha), certificado não troca empresa, aviso/log dizem portal x certificado, explicação quando o portal traz nota de outra empresa; coluna Auditoria na Situação da busca (Auditada/Com divergência/Auditada em parte/Não auditada), filtros e clique que abre a Auditoria.
 - PENDENTE com o usuário: (a) "Esquecer senha salva" da Pereira Pescados (acesso errado ficou guardado) e testar a NFS-e com o acesso de outra empresa; (b) conferir a coluna Auditoria no Windows; (c) antigos: autorizar relatório principal de NF-e, Ciência da Operação, print do menu ⋮ NFS-e, botão "Enviar log", "próxima consulta liberada às HH:MM" na NF-e.
+
+## V187 (feita em 19/10): compras com Simples Nacional e crédito de ICMS
+- FEITO: relatório de Documentos, seção NF-e (ENTRADA): colunas "Optante pelo Simples Nacional?" e "Permite aproveitamento?" + resumo do crédito informado (autorizadas).
+- PENDENTE com o usuário: conferir no Windows com notas de fornecedores do Simples; dizer se quer o mesmo em Excel/planilha ou na tela Documentos fiscais; (antigos) Pereira Pescados "Esquecer senha salva", autorizar relatório principal de NF-e, Ciência da Operação, print do menu ⋮ NFS-e, botão "Enviar log", "próxima consulta liberada às HH:MM".

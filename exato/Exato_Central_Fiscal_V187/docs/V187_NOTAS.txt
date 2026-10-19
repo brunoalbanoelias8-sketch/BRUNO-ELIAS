@@ -1,0 +1,22 @@
+V187 — RELATÓRIO DE COMPRAS COM "OPTANTE PELO SIMPLES NACIONAL?" E "PERMITE APROVEITAMENTO?"
+
+PEDIDO DO USUÁRIO
+No relatório em PDF das entradas (compras), colocar uma coluna "Optante pelo Simples Nacional?" e outra "Permite aproveitamento?". Fornecedor do Simples que usa CSOSN 101 e escreve nas informações complementares "empresa optante pelo Simples Nacional, permite o aproveitamento de crédito com a alíquota de ...%" dá crédito de ICMS que uma empresa do lucro real consegue aproveitar.
+
+O QUE FOI FEITO
+1. `exato_relatorio_docs_pdf.simples_credito(xml)` lê da NF-e: CRT do emitente (1, 2 ou 4 = Simples/MEI; 3 = regime normal), CSOSN 101/201 (tributada com permissão de crédito), `vCredICMSSN` (valor) e `pCredSN` (alíquota) e, quando não há CSOSN claro, a frase das informações complementares ("aproveitamento" + "crédito"). CSOSN sem crédito (102, 103, 300, 400, 500...) = "Não", mesmo que haja frase solta. Sem CRT no XML = "—" (nunca "Não" sem dado). Fornecedor de regime normal = optante "Não" e aproveitamento "—" (o crédito dele vem do ICMS destacado, outra regra).
+2. Na seção NF-e (ENTRADA) do relatório de Documentos fiscais, duas colunas novas: "Optante pelo Simples Nacional?" (Sim / Não / —) e "Permite aproveitamento?" (Sim • R$ valor • alíquota% / Não / —). Antes da tabela, uma linha resume: quantas notas autorizadas permitem o aproveitamento e quanto de crédito foi informado; cancelada nunca entra na soma. A seção de saída e os outros tipos não mudam.
+3. Só NF-e de entrada (compras); NFC-e e CT-e não têm essas colunas.
+
+REVISÃO FEITA NESTA VERSÃO (regra do usuário)
+- Releitura do diff; teste novo `test_v187_relatorio_simples` (Simples com crédito, CSOSN 102, regime normal, sem CRT, CSOSN 101 sem valor, frase solta com CSOSN 102, PDF com as colunas e o resumo, saída sem as colunas); PDF conferido na imagem (cabeçalhos sem quebra feia, chave inteira).
+- Núcleos protegidos intocados (`generate_documents_pdf` continua sem uso; só o módulo `exato_relatorio_docs_pdf`).
+- Suíte inteira (sem o teste do portal), fuzz, núcleos 13/13 e ativos 31/31.
+
+LIMITES CONHECIDOS
+- A regra é pelo que o fornecedor informou no XML; o Exato não confere se a alíquota/valor do crédito está correta nem se a frase está completa.
+- Quem pode aproveitar o crédito depende do regime de quem compra: a coluna só informa que a nota PERMITE; a decisão é do escritório.
+- Nota de entrada sem o XML completo (só resumo) fica "—".
+
+A CONFERIR NO WINDOWS
+- Documentos fiscais > NF-e > Entrada > Relatório PDF: as duas colunas novas aparecem na seção de entrada e a soma do crédito confere com algumas notas de fornecedores do Simples.

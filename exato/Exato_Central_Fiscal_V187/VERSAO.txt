@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V187
+
+Relatório de compras (NF-e de entrada) com as colunas "Optante pelo Simples Nacional?" e "Permite aproveitamento?" (crédito de ICMS do Simples). Nenhuma regra fiscal protegida foi alterada.
