@@ -1,0 +1,4 @@
+Exato Central Fiscal
+Versão V189
+
+Desempenho ao trocar de aba: as listas (Documentos fiscais, NFS-e, Manutenção) só são relidas quando algo mudou, e a leitura pesada acontece em segundo plano. Backup do banco em blocos grandes, sem congelar a tela. Nenhuma regra fiscal protegida foi alterada.

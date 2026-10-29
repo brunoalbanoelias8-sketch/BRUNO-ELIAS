@@ -1,0 +1,31 @@
+V189 — DESEMPENHO AO TROCAR DE ABA
+
+PEDIDO DO USUÁRIO
+"Pode trabalhar em uma nova versão com foco em desempenho? Ainda estou achando um pouco travado o programa, quando vou clicando entre abas."
+
+MEDIÇÃO (banco sintético com 120 mil notas, Tk de verdade, EXATO_UI_SYNC=0, cProfile por tela)
+- Documentos fiscais: 0,50 s -> 0,13 s ao voltar para a tela.
+- NFS-e: 0,45 s -> 0,09 s.
+- Manutenção: 0,20 s -> 0,07 s.
+- Soma das piores telas: 1,79 s -> 0,81 s.
+
+CAUSAS
+- Documentos fiscais e NFS-e relinham o banco inteiro a cada clique na aba, mesmo sem nada novo.
+- Manutenção contava o arquivo fiscal (varredura) na linha principal.
+- Backup do banco copiava em um bloco só, segurando a tela durante a cópia.
+
+O QUE FOI FEITO
+1. `db_data_version()`: versão do banco (PRAGMA data_version, conexão persistente) vira a chave de cache. Documentos fiscais e NFS-e só releem se a versão ou os filtros mudaram (`_docs_sig`, `_nfse_sig`).
+2. Leitura pesada em segundo plano com "geração" (várias trocas seguidas: só a última vale), resultado entregue por `_repo_post`; linhas inseridas em lotes (`_chunked`). Com `EXATO_UI_SYNC=1` (testes) segue o caminho síncrono.
+3. `db_local_archive_stats` com cache invalidado pela versão do banco; Manutenção monta os números fora da linha principal.
+4. `repo_mod.zip_gentil`: ZIP em blocos de 4 MB com pausas de 4 ms (backup manual, automático e diário; compressão leve no diário).
+5. A conexão persistente é fechada antes de trocar o arquivo do banco (restauração) e ao fechar o programa (trava de arquivo no Windows).
+
+REVISÃO FEITA NESTA VERSÃO (regra do usuário)
+- Releitura do diff; teste novo `test_v189_desempenho` (versão do banco, cache de contagem sem esconder nota nova, backup válido, tela só relê quando algo mudou, filtros seguidos: só o último vale, NFS-e e Manutenção).
+- Armadilha do Windows: arquivo do banco aberto durante restauração (conexão fechada antes).
+- Suíte inteira (sem o teste do portal), fuzz de roda, núcleos 13/13 e ativos 31/31.
+
+LIMITES CONHECIDOS
+- Medido no Linux com banco sintético; a sensação no Windows com a rede do escritório deve ser conferida pelo usuário.
+- Primeira visita a Auditoria/Painel ainda lê o banco (não mudou nesta versão).
