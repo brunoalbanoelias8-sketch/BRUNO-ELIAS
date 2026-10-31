@@ -267,3 +267,6 @@ Plano V170: (a) dois estados separados: `selected` (Buscar XML) e `nfse_selected
 
 ## 29/10 — Desempenho (V189)
 - Pedido: programa travado ao clicar entre abas. Feito: cache por versão do banco (Documentos, NFS-e, Manutenção), leitura em segundo plano, backup em blocos. A conferir: quais abas ainda pesam no Windows (linhas "Tela sem responder" no exato.log); Auditoria/Painel na primeira visita.
+
+## 31/10 — Decisão: continuar como programa instalado
+- Pergunta do usuário: virar site/link? Decisão: manter o programa instalado e só melhorar (certificado A1/A3 lido do Windows, dados fiscais locais, captcha do portal manual). Página de consulta só leitura fica como ideia futura, não pedida.
