@@ -270,3 +270,8 @@ Plano V170: (a) dois estados separados: `selected` (Buscar XML) e `nfse_selected
 
 ## 31/10 — Decisão: continuar como programa instalado
 - Pergunta do usuário: virar site/link? Decisão: manter o programa instalado e só melhorar (certificado A1/A3 lido do Windows, dados fiscais locais, captcha do portal manual). Página de consulta só leitura fica como ideia futura, não pedida.
+
+## 31/10 — Perfil do usuário em qualquer computador (EM DECISÃO, nada a fazer ainda)
+- Pedido: ao logar em outra máquina (sem acesso ao servidor do escritório), carregar empresas, relatórios e configurações do usuário. O usuário vai pensar; não quer busca/dados em outro servidor.
+- Hoje: empresas/auditorias/notas sincronizam pela pasta do servidor do escritório quando alcançável (V182); certificado, senha NFS-e, usuários, histórico ficam por computador. Fora do escritório: "Importar empresas (Excel)".
+- Opções levantadas: (A) Central guarda perfil + servidor pequeno na internet; (B) pasta em nuvem; (C, sem servidor externo) botão "Levar meus dados" (arquivo com empresas e configurações, exporta/importa). Senha NFS-e e certificado nunca viajam.
